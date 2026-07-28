@@ -167,7 +167,11 @@ public class MemInfoView extends TextView implements Insettable {
         mActivityManager.getMemoryInfo(memInfo);
         double totalMemoryGB = memInfo.totalMem / (1024.0 * 1024.0 * 1024.0);
         int roundedMemoryGB = roundToNearestKnownRamSize(totalMemoryGB);
-        return roundedMemoryGB + " GB";
+        long roundedMemoryBytes = roundedMemoryGB * 1024L * 1024L * 1024L;
+        return Formatter.formatFileSize(
+                getContext(),
+                roundedMemoryBytes,
+                Formatter.FLAG_SHORTER | Formatter.FLAG_IEC_UNITS);
     }
 
     private int roundToNearestKnownRamSize(double memoryGB) {
