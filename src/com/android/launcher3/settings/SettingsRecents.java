@@ -304,12 +304,32 @@ public class SettingsRecents extends CollapsingToolbarBaseActivity
                 return VibratorWrapper.INSTANCE.get(getContext()).hasVibrator();
             }
 
+            if (key.equals(LauncherPrefs.RECENTS_LENS.getSharedPrefKey())) {
+                updateLensPreference(preference);
+            }
+
             return true;
+        }
+
+        private void updateLensPreference(Preference preference) {
+            boolean available = Utilities.isLensAvailable(requireContext());
+            preference.setEnabled(available);
+            if (available) {
+                preference.setSummary((CharSequence) null);
+            } else {
+                preference.setSummary(R.string.recents_lens_component_not_installed);
+            }
         }
 
         @Override
         public void onResume() {
             super.onResume();
+
+            Preference lensPreference = findPreference(
+                    LauncherPrefs.RECENTS_LENS.getSharedPrefKey());
+            if (lensPreference != null) {
+                updateLensPreference(lensPreference);
+            }
 
             if (isAdded() && !mPreferenceHighlighted) {
                 PreferenceHighlighter highlighter = createHighlighter();

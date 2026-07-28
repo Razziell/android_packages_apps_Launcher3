@@ -40,9 +40,11 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.LauncherActivityInfo;
 import android.content.pm.LauncherApps;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.content.pm.ShortcutInfo;
 import android.content.res.Configuration;
 import android.content.res.Resources;
@@ -182,6 +184,7 @@ public final class Utilities {
     public @interface AdjustmentDirection{}
 
     public static final String GSA_PACKAGE = "com.google.android.googlequicksearchbox";
+    public static final String STANDALONE_LENS_PACKAGE = "com.google.ar.lens";
     public static final String GEMINI_PACKAGE = "com.google.android.apps.bard";
     public static final String LENS_ACTIVITY = "com.google.android.apps.search.lens.LensExportedActivity";
     public static final String LENS_URI = "google://lens";
@@ -1117,6 +1120,48 @@ public final class Utilities {
 
     public static boolean isGSAEnabled(Context context) {
         return isPackageInstalled(context, GSA_PACKAGE);
+    }
+
+    /** Returns an image share intent for Google App Lens or standalone Google Lens. */
+    public static Intent getLensShareIntent(Context context) {
+        PackageManager packageManager = context.getPackageManager();
+        ComponentName googleAppComponent = new ComponentName(GSA_PACKAGE, LENS_SHARE_ACTIVITY);
+        try {
+            ActivityInfo activityInfo = packageManager.getActivityInfo(googleAppComponent, 0);
+            if (isUsableLensActivity(activityInfo)) {
+                return new Intent(Intent.ACTION_SEND)
+                        .setComponent(googleAppComponent)
+                        .setType("image/png");
+            }
+        } catch (PackageManager.NameNotFoundException ignored) {
+            // Fall through to the standalone Lens application.
+        }
+
+        Intent standaloneLensIntent = new Intent(Intent.ACTION_SEND)
+                .setPackage(STANDALONE_LENS_PACKAGE)
+                .setType("image/png");
+        for (ResolveInfo resolveInfo : packageManager.queryIntentActivities(
+                standaloneLensIntent, PackageManager.MATCH_DEFAULT_ONLY)) {
+            ActivityInfo activityInfo = resolveInfo.activityInfo;
+            if (isUsableLensActivity(activityInfo)) {
+                return standaloneLensIntent.setComponent(new ComponentName(
+                        activityInfo.packageName, activityInfo.name));
+            }
+        }
+        return null;
+    }
+
+    private static boolean isUsableLensActivity(ActivityInfo activityInfo) {
+        return activityInfo != null
+                && activityInfo.exported
+                && activityInfo.enabled
+                && activityInfo.applicationInfo != null
+                && activityInfo.applicationInfo.enabled
+                && (activityInfo.applicationInfo.flags & ApplicationInfo.FLAG_INSTALLED) != 0;
+    }
+
+    public static boolean isLensAvailable(Context context) {
+        return getLensShareIntent(context) != null;
     }
 
     public static boolean showQSB(Context context) {

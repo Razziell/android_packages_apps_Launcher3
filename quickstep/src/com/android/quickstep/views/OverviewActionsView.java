@@ -208,6 +208,10 @@ public class OverviewActionsView<T extends OverlayUICallbacks> extends FrameLayo
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
+        mScreenshot = LauncherPrefs.RECENTS_SCREENSHOT.get(getContext());
+        mClearAll = LauncherPrefs.RECENTS_CLEAR_ALL.get(getContext());
+        mLens = LauncherPrefs.RECENTS_LENS.get(getContext());
+        updateVisibilities();
         if (!mPrefsRegistered) {
             mPrefs.registerOnSharedPreferenceChangeListener(this);
             mPrefsRegistered = true;
@@ -299,7 +303,7 @@ public class OverviewActionsView<T extends OverlayUICallbacks> extends FrameLayo
 
         View lensButton = findViewById(R.id.action_lens);
         lensButton.setOnClickListener(this);
-        lensButton.setVisibility(mLens && Utilities.isGSAEnabled(getContext()) ? VISIBLE : GONE);
+        lensButton.setVisibility(mLens && Utilities.isLensAvailable(getContext()) ? VISIBLE : GONE);
     }
 
     /**

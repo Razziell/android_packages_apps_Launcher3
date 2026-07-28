@@ -170,21 +170,26 @@ public class ImageActionUtils {
                 Log.e(tag, "No snapshot available, not starting lens.");
                 return;
             }
-            Intent intent = new Intent();
+            Intent intent = Utilities.getLensShareIntent(context);
+            if (intent == null) {
+                Log.e(tag, "No Google Lens component available.");
+                return;
+            }
             Uri uri = getImageUri(bitmap, crop, context, tag);
             ClipData clipdata = new ClipData(new ClipDescription("content",
                     new String[]{"image/png"}),
                     new ClipData.Item(uri));
-            intent.setAction(Intent.ACTION_SEND)
-                    .setComponent(
-                            new ComponentName(Utilities.GSA_PACKAGE, Utilities.LENS_SHARE_ACTIVITY))
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK)
                     .addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
                     .addFlags(FLAG_GRANT_READ_URI_PERMISSION)
-                    .setType("image/png")
                     .putExtra(Intent.EXTRA_STREAM, uri)
                     .setClipData(clipdata);
-            context.startActivity(intent);
+            try {
+                context.startActivity(intent);
+            } catch (ActivityNotFoundException | SecurityException e) {
+                // The Lens package may have been removed or disabled after it was resolved.
+                Log.e(tag, "Google Lens component is no longer available.", e);
+            }
         });
     }
 

@@ -170,6 +170,7 @@
     <string name="recents_screenshot_title">Screenshot</string>
     <string name="recents_clear_all_title">Clear all</string>
     <string name="recents_lens_title">Lens</string>
+    <string name="recents_lens_component_not_installed">Required component is not installed: Google app (com.google.android.googlequicksearchbox) or Google Lens (com.google.ar.lens)</string>
 
     <!-- Parallax -->
     <string name="short_parallax_title">Allow short parallax</string>

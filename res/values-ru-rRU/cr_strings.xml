@@ -137,6 +137,7 @@
     <string name="recents_screenshot_title">Снимок экрана</string>
     <string name="recents_clear_all_title">Очистить всё</string>
     <string name="recents_lens_title">Объектив</string>
+    <string name="recents_lens_component_not_installed">Не установлен необходимый компонент: приложение Google (com.google.android.googlequicksearchbox) или Google Объектив (com.google.ar.lens)</string>
     <!-- Parallax -->
     <string name="short_parallax_title">Разрешить короткое смещение</string>
     <string name="short_parallax_summary">Включить эффект полной прокрутки обоев на меньшем количестве страниц вместо обрезки обоев</string>
