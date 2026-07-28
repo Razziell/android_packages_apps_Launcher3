@@ -150,6 +150,7 @@ public class TaskbarManagerImpl implements DisplayDecorationListener {
     private static final String TAG = "TaskbarManager";
     private static final boolean DEBUG = false;
     private static final int TASKBAR_DESTROY_DURATION = 100;
+    private static final String NAVBAR_IME_SPACE = "sysui_show_nav_bar_ime";
 
     // TODO: b/397738606  - Remove all logs with this tag after the growth framework is integrated.
     public static final String GROWTH_FRAMEWORK_TAG = "Growth Framework";
@@ -198,7 +199,7 @@ public class TaskbarManagerImpl implements DisplayDecorationListener {
             Settings.System.GESTURE_NAVBAR_HEIGHT_MODE);
 
     public static final Uri NAVBAR_IME_SPACE_URI = Settings.Secure.getUriFor(
-            Settings.Secure.NAVBAR_IME_SPACE);
+            NAVBAR_IME_SPACE);
 
     public static final LooperExecutor TASKBAR_UI_THREAD =
             new LooperExecutor("TASKBAR_UI_THREAD", THREAD_PRIORITY_FOREGROUND);
