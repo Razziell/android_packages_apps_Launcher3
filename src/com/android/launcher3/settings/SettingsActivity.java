@@ -41,7 +41,7 @@ import androidx.preference.PreferenceGroup.PreferencePositionCallback;
 import androidx.preference.PreferenceScreen;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.android.crdroid.utils.IconTinterUtils;
+import com.android.evolution.utils.IconTinterUtils;
 
 import com.android.launcher3.BuildConfig;
 import com.android.launcher3.Flags;

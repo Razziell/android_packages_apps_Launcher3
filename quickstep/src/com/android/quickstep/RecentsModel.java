@@ -45,6 +45,7 @@ import com.android.launcher3.graphics.ThemeManager;
 import com.android.launcher3.graphics.ThemeManager.ThemeChangeListener;
 import com.android.launcher3.icons.IconChangeTracker;
 import com.android.launcher3.icons.IconProvider;
+import com.android.launcher3.icons.ThirdPartyIconProvider;
 import com.android.launcher3.util.DaggerSingletonObject;
 import com.android.launcher3.util.DaggerSingletonTracker;
 import com.android.launcher3.util.DisplayController;
@@ -116,6 +117,7 @@ public class RecentsModel implements RecentTasksDataSource, TaskStackChangeListe
 
     @Inject
     public RecentsModel(@ApplicationContext Context context,
+            ThirdPartyIconProvider iconProvider,
             SystemUiProxy systemUiProxy,
             TopTaskTracker topTaskTracker,
             DisplayController displayController,
@@ -128,7 +130,7 @@ public class RecentsModel implements RecentTasksDataSource, TaskStackChangeListe
             ) {
         // Lazily inject the ThemeManager and access themeManager once the device is
         // unlocked. See b/393248495 for details.
-        this(context, IconProvider.INSTANCE.get(context), systemUiProxy, topTaskTracker,
+        this(context, (IconProvider) iconProvider, systemUiProxy, topTaskTracker,
                 displayController, lockedUserState, themeManagerLazy, tracker, dispatcherProvider,
                 uiExecutor, iconChangeTracker);
     }

@@ -635,6 +635,7 @@ android_library {
         "QuickstepResLib",
         "androidx.room_room-runtime",
         "androidx.room_room-ktx",
+        "commonutils",
     ],
     manifest: "quickstep/AndroidManifest.xml",
     platform_apis: true,
