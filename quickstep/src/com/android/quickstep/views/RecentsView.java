@@ -7299,7 +7299,7 @@ public abstract class RecentsView<
                 child.setScaleY(finalScale);
             }
         } else {
-            
+            tv.getPrimaryTaskOffsetTranslationProperty().set(tv, currentTrans);
             if (child.getTranslationZ() != 0f) child.setTranslationZ(0f);
             if (child.getScaleX() != baseScale) {
                 child.setScaleX(baseScale);
@@ -7344,6 +7344,7 @@ public abstract class RecentsView<
             }
         }
 
+        tv.getPrimaryTaskOffsetTranslationProperty().set(tv, currentTrans);
         if (child.getTranslationZ() != 0f) child.setTranslationZ(0f);
         tv.setColorTint(0f, 0);
         if (child.getScaleX() != baseScale) {
@@ -7387,6 +7388,7 @@ public abstract class RecentsView<
             }
         }
         
+        tv.getPrimaryTaskOffsetTranslationProperty().set(tv, currentTrans);
         if (child.getTranslationZ() != 0f) child.setTranslationZ(0f);
         if (child.getScaleX() != baseScale) {
             child.setScaleX(baseScale);
