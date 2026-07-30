@@ -18,13 +18,12 @@
 package com.android.quickstep.views;
 
 import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
-import static com.android.launcher3.util.Executors.MODEL_EXECUTOR;
+import static com.android.launcher3.util.Executors.UI_HELPER_EXECUTOR;
 
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
-import android.os.Debug;
 import android.os.Handler;
 import android.graphics.Rect;
 import android.text.format.Formatter;
@@ -35,8 +34,6 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.FrameLayout.LayoutParams;
 import android.widget.TextView;
-
-import com.android.internal.util.MemInfoReader;
 
 import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.LauncherPrefs;
@@ -52,7 +49,6 @@ import java.io.IOException;
 import java.lang.Runnable;
 import java.lang.ref.WeakReference;
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Locale;
 
 public class MemInfoView extends TextView implements Insettable {
@@ -89,8 +85,6 @@ public class MemInfoView extends TextView implements Insettable {
     private String mMemInfoText;
 
     private ActivityManager.MemoryInfo memInfo;
-    private MemInfoReader mMemInfoReader;
-
     private Context mContext;
 
     String mTotalResult;
@@ -103,7 +97,6 @@ public class MemInfoView extends TextView implements Insettable {
         mAlpha.setUpdateVisibility(true);
         mActivityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
         memInfo = new ActivityManager.MemoryInfo();
-        mMemInfoReader = new MemInfoReader();
         mTotalResult = formatTotalMemory();
 
         mMemInfoText = context.getResources().getString(R.string.meminfo_text);
@@ -224,29 +217,9 @@ public class MemInfoView extends TextView implements Insettable {
         });
     }
 
-    private long getTotalBackgroundMemory() {
-        long totalBackgroundMemory = 0;
-        List<ActivityManager.RunningAppProcessInfo> runningProcesses = mActivityManager.getRunningAppProcesses();
-        if (runningProcesses != null) {
-            int[] pids = new int[runningProcesses.size()];
-            for (int i = 0; i < runningProcesses.size(); i++) {
-                pids[i] = runningProcesses.get(i).pid;
-            }
-            Debug.MemoryInfo[] memoryInfos = mActivityManager.getProcessMemoryInfo(pids);
-            for (int i = 0; i < memoryInfos.length; i++) {
-                ActivityManager.RunningAppProcessInfo info = runningProcesses.get(i);
-                if (info.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_BACKGROUND) {
-                    long memorySize = memoryInfos[i].getTotalPss() * 1024L;
-                    totalBackgroundMemory += memorySize;
-                }
-            }
-        }
-        return totalBackgroundMemory;
-    }
-
     private void startMemoryMonitoring() {
         if (mHandler == null) {
-            mHandler = MODEL_EXECUTOR.getHandler();
+            mHandler = UI_HELPER_EXECUTOR.getHandler();
             mHandler.post(mWorker);
         }
     }
@@ -272,10 +245,8 @@ public class MemInfoView extends TextView implements Insettable {
                 return;
             }
 
-            view.mMemInfoReader.readMemInfo();
-            long freeMemory = view.mMemInfoReader.getFreeSize() +
-                              view.mMemInfoReader.getCachedSize() +
-                              view.getTotalBackgroundMemory();
+            view.mActivityManager.getMemoryInfo(view.memInfo);
+            long freeMemory = view.memInfo.availMem;
             long zramSize = view.getZramSize();
 
             String availResult = Formatter.formatShortFileSize(view.mContext, freeMemory);
