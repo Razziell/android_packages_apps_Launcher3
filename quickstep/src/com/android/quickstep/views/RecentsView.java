@@ -7159,7 +7159,7 @@ public abstract class RecentsView<
         final boolean isIOS = mRecentsStyle.equals("ios");
         final boolean isOxygen = mRecentsStyle.equals("oxygen");
 
-        float mScrollScale = isOxygen ? 0.92f : 0.85f;
+        float mScrollScale = isOxygen ? 0.95f : 0.85f;
 
         float overlapFactor = getStackStyleOverlapFactor();
         final boolean applyOverlap = (overlapFactor > 0);
@@ -7209,7 +7209,17 @@ public abstract class RecentsView<
 
             float baseScale = mScrollScale;
             if (scrollDelta <= scaleArea) {
-                baseScale = Utilities.mapToRange(scrollDelta, 0, scaleArea, 1f, mScrollScale, EMPHASIZED);
+                if (isOxygen) {
+                    float linearProgress = Utilities.boundToRange(
+                            scrollDelta / (float) scaleArea, 0f, 1f);
+                    float emphasizedProgress = EMPHASIZED.getInterpolation(linearProgress);
+                    float scaleProgress = linearProgress
+                            + (emphasizedProgress - linearProgress) * 0.4f;
+                    baseScale = Utilities.mapRange(scaleProgress, 1f, mScrollScale);
+                } else {
+                    baseScale = Utilities.mapToRange(
+                            scrollDelta, 0, scaleArea, 1f, mScrollScale, EMPHASIZED);
+                }
             }
 
             boolean styleApplied = false;
