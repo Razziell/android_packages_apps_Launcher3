@@ -19,8 +19,6 @@ import static android.content.Intent.ACTION_SCREEN_OFF;
 import static android.content.Intent.ACTION_SCREEN_ON;
 import static android.content.Intent.ACTION_USER_PRESENT;
 
-import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
-import static com.android.launcher3.util.Executors.THREAD_POOL_EXECUTOR;
 import static com.android.launcher3.util.SimpleBroadcastReceiver.actionsFilter;
 
 import android.content.Context;
@@ -84,33 +82,17 @@ public class ScreenOnTracker {
         String action = intent.getAction();
         if (ACTION_SCREEN_ON.equals(action)) {
             mIsScreenOn = true;
-            THREAD_POOL_EXECUTOR.execute(() -> {
-                dispatchScreenOnChanged();
-            });
+            dispatchScreenOnChanged();
         } else if (ACTION_SCREEN_OFF.equals(action)) {
             mIsScreenOn = false;
-            THREAD_POOL_EXECUTOR.execute(() -> {
-                dispatchScreenOnChanged();
-            });
+            dispatchScreenOnChanged();
         } else if (ACTION_USER_PRESENT.equals(action)) {
-            THREAD_POOL_EXECUTOR.execute(() -> {
-                dispatchUserPresent();
-            });
+            mListeners.forEach(ScreenOnListener::onUserPresent);
         }
     }
 
     private void dispatchScreenOnChanged() {
-        for (ScreenOnListener listener : mListeners) {
-            MAIN_EXECUTOR.execute(() -> {
-                listener.onScreenOnChanged(mIsScreenOn);
-            });
-        }
-    }
-
-    private void dispatchUserPresent() {
-        for (ScreenOnListener listener : mListeners) {
-            MAIN_EXECUTOR.execute(listener::onUserPresent);
-        }
+        mListeners.forEach(listener -> listener.onScreenOnChanged(mIsScreenOn));
     }
 
     /** Returns if the screen is on or not */

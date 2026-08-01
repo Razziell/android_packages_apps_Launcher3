@@ -76,6 +76,8 @@ import com.android.launcher3.util.ActivityOptionsWrapper;
 import com.android.launcher3.util.ContextTracker;
 import com.android.launcher3.util.DisplayController;
 import com.android.launcher3.util.RunnableList;
+import com.android.launcher3.util.ScreenOnTracker;
+import com.android.launcher3.util.ScreenOnTracker.ScreenOnListener;
 import com.android.launcher3.util.SystemUiController;
 import com.android.launcher3.util.Themes;
 import com.android.launcher3.views.BaseDragLayer;
@@ -124,6 +126,12 @@ public final class RecentsActivity extends StatefulActivity<RecentsState> implem
     private MemInfoView mMemInfoView;
 
     private StateManager<RecentsState, RecentsActivity> mStateManager;
+
+    private final ScreenOnListener mScreenOnListener = isOn -> {
+        if (!isOn && !isFinishing()) {
+            finishAndRemoveTask();
+        }
+    };
 
     // Strong refs to runners which are cleared when the activity is destroyed
     private RemoteAnimationFactory mActivityLaunchAnimationRunner;
@@ -403,6 +411,7 @@ public final class RecentsActivity extends StatefulActivity<RecentsState> implem
         getSystemUiController().updateUiState(SystemUiController.UI_STATE_BASE_WINDOW,
                 Themes.getAttrBoolean(this, R.attr.isWorkspaceDarkText));
         ACTIVITY_TRACKER.handleCreate(this);
+        ScreenOnTracker.INSTANCE.get(this).addListener(mScreenOnListener);
 
         // Set screen title for Talkback
         setTitle(R.string.accessibility_recent_apps);
@@ -474,6 +483,7 @@ public final class RecentsActivity extends StatefulActivity<RecentsState> implem
 
     @Override
     protected void onDestroy() {
+        ScreenOnTracker.INSTANCE.get(this).removeListener(mScreenOnListener);
         RecentsView recentsView = getOverviewPanel();
         if (recentsView != null) {
             recentsView.destroy();
