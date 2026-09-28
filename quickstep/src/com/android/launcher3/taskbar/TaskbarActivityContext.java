@@ -936,6 +936,11 @@ public class TaskbarActivityContext extends BaseTaskbarContext {
         return mControllers.bubbleControllers.orElse(null);
     }
 
+    /** Visual auto-hide notification only; gesture ownership remains with Quickstep. */
+    public void onNavigationHandleTouch(boolean started) {
+        mControllers.stashedHandleViewController.onNavigationTouch(started);
+    }
+
     @NonNull
     public NavHandle getNavHandle() {
         return mControllers.stashedHandleViewController;

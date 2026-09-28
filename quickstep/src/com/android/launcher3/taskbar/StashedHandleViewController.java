@@ -35,6 +35,11 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Outline;
 import android.graphics.Rect;
+import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
+import android.provider.Settings;
+import android.view.accessibility.AccessibilityManager;
 import android.view.View;
 import android.view.ViewOutlineProvider;
 
@@ -51,6 +56,7 @@ import com.android.launcher3.anim.RoundedRectRevealOutlineProvider;
 import com.android.launcher3.util.Executors;
 import com.android.launcher3.util.MultiValueAlpha;
 import com.android.launcher3.util.SettingsCache;
+import com.android.launcher3.util.ScreenOnTracker;
 import com.android.quickstep.NavHandle;
 import com.android.quickstep.TopTaskTracker;
 import com.android.systemui.shared.system.QuickStepContract.SystemUiStateFlags;
@@ -72,7 +78,13 @@ public class StashedHandleViewController implements TaskbarControllers.LoggableT
     public static final int ALPHA_INDEX_HIDDEN_WHILE_DREAMING = 3;
     public static final int ALPHA_INDEX_NUDGED = 4;
     public static final int ALPHA_INDEX_ALL_SET_TRANSITION = 5;
-    private static final int NUM_ALPHA_CHANNELS = 6;
+    private static final int ALPHA_INDEX_AUTO_HIDE = 6;
+    private static final int NUM_ALPHA_CHANNELS = 7;
+    private static final Uri AUTO_HIDE_URI = Settings.System.getUriFor(
+            Settings.System.GESTURE_NAVBAR_AUTO_HIDE);
+    // Match the existing EVOX SystemUI phone navigation handle policy.
+    private static final int AUTO_HIDE_TIMEOUT_MS = 4500;
+    private static final int AUTO_HIDE_FADE_MS = 750;
 
     // Values for long press animations, picked to most closely match navbar spec.
     private static final float SCALE_TOUCH_ANIMATION_SHRINK = 0.85f;
@@ -120,6 +132,14 @@ public class StashedHandleViewController implements TaskbarControllers.LoggableT
     private float mTranslationYForSwipe;
     private float mTranslationYForStash;
     private TaskStackChangeListener mTaskStackChangeListener;
+    private Handler mAutoHideHandler;
+    private NavHandleAutoHideController mAutoHideController;
+    private Animator mAutoHideAnimator;
+    private SettingsCache.OnChangeListener mAutoHideSettingListener;
+    private ScreenOnTracker.ScreenOnListener mAutoHideScreenListener;
+    private long mAutoHideSysuiFlags;
+    private volatile boolean mDestroyed;
+    private volatile int mAutoHideGeneration;
 
     public StashedHandleViewController(TaskbarActivityContext activity,
             StashedHandleView stashedHandleView) {
@@ -133,6 +153,11 @@ public class StashedHandleViewController implements TaskbarControllers.LoggableT
     }
 
     public void init(TaskbarControllers controllers) {
+        // Small-screen taskbar contexts/controllers can be re-used after onDestroy().
+        mDestroyed = false;
+        mAutoHideGeneration++;
+        mAutoHideSysuiFlags = 0;
+        mTaskbarStashedHandleAlpha.get(ALPHA_INDEX_AUTO_HIDE).setValue(1f);
         mControllers = controllers;
         DeviceProfile deviceProfile = mActivity.getDeviceProfile();
         Resources resources = mActivity.getResources();
@@ -225,11 +250,21 @@ public class StashedHandleViewController implements TaskbarControllers.LoggableT
         if (mActivity.isPhoneGestureNavMode()) {
             onIsStashedChanged(true);
         }
-        if (!mActivity.isPrimaryDisplay() && enableAutoStashConnectedDisplayTaskbar.isTrue()) {
+        if (mActivity.isPrimaryDisplay() && mActivity.isPhoneGestureNavMode()
+                && mActivity.isUserSetupComplete()) {
+            initAutoHide();
+        }
+        if (mAutoHideController != null
+                || (!mActivity.isPrimaryDisplay() && enableAutoStashConnectedDisplayTaskbar.isTrue())) {
+            final NavHandleAutoHideController autoHideController = mAutoHideController;
             mTaskStackChangeListener = new TaskStackChangeListener() {
                 @Override
                 public void onTaskStackChanged() {
-                    updateHandleColorOnConnectedDisplay();
+                    if (autoHideController != null) {
+                        runOnAutoHideThread(autoHideController::showTemporarily);
+                    } else {
+                        updateHandleColorOnConnectedDisplay();
+                    }
                 }
             };
             TaskStackChangeListeners.getInstance().registerTaskStackListener(
@@ -264,6 +299,19 @@ public class StashedHandleViewController implements TaskbarControllers.LoggableT
 
 
     public void onDestroy() {
+        mDestroyed = true;
+        mAutoHideGeneration++;
+        if (mAutoHideController != null) {
+            SettingsCache.INSTANCE.get(mActivity).unregister(AUTO_HIDE_URI, mAutoHideSettingListener);
+            ScreenOnTracker.INSTANCE.get(mActivity).removeListener(mAutoHideScreenListener);
+            mAutoHideController.destroy();
+            mAutoHideHandler.removeCallbacksAndMessages(null);
+            cancelAutoHideAnimation();
+            mAutoHideController = null;
+            mAutoHideHandler = null;
+            mAutoHideSettingListener = null;
+            mAutoHideScreenListener = null;
+        }
         if (mRegionSamplingHelper != null) {
             mRegionSamplingHelper.stopAndDestroy();
         }
@@ -271,7 +319,92 @@ public class StashedHandleViewController implements TaskbarControllers.LoggableT
         if (mTaskStackChangeListener != null) {
             TaskStackChangeListeners.getInstance().unregisterTaskStackListener(
                     mTaskStackChangeListener);
+            mTaskStackChangeListener = null;
         }
+    }
+
+    private void initAutoHide() {
+        mAutoHideHandler = new Handler(Looper.myLooper());
+        AccessibilityManager accessibility = mActivity.getSystemService(AccessibilityManager.class);
+        mAutoHideController = new NavHandleAutoHideController(
+                new NavHandleAutoHideController.Scheduler() {
+                    @Override
+                    public void postDelayed(Runnable action, long delayMillis) {
+                        mAutoHideHandler.postDelayed(action, delayMillis);
+                    }
+
+                    @Override
+                    public void removeCallbacks(Runnable action) {
+                        mAutoHideHandler.removeCallbacks(action);
+                    }
+                },
+                () -> accessibility == null ? AUTO_HIDE_TIMEOUT_MS
+                        : accessibility.getRecommendedTimeoutMillis(AUTO_HIDE_TIMEOUT_MS,
+                                AccessibilityManager.FLAG_CONTENT_CONTROLS),
+                () -> {
+                    cancelAutoHideAnimation();
+                    mTaskbarStashedHandleAlpha.get(ALPHA_INDEX_AUTO_HIDE).setValue(1f);
+                },
+                () -> {
+                    cancelAutoHideAnimation();
+                    mAutoHideAnimator = mTaskbarStashedHandleAlpha.get(ALPHA_INDEX_AUTO_HIDE)
+                            .animateToValue(0f);
+                    mAutoHideAnimator.setDuration(AUTO_HIDE_FADE_MS);
+                    mAutoHideAnimator.start();
+                });
+        final NavHandleAutoHideController controller = mAutoHideController;
+        mAutoHideSettingListener = ignored -> runOnAutoHideThread(() ->
+                controller.setEnabled(SettingsCache.INSTANCE.get(mActivity)
+                        .getValue(AUTO_HIDE_URI)));
+        SettingsCache.INSTANCE.get(mActivity).register(AUTO_HIDE_URI, mAutoHideSettingListener);
+        mAutoHideScreenListener = new ScreenOnTracker.ScreenOnListener() {
+            @Override
+            public void onScreenOnChanged(boolean isOn) {
+                runOnAutoHideThread(() -> controller.setScreenOn(isOn));
+            }
+
+            @Override
+            public void onUserPresent() {
+                runOnAutoHideThread(controller::showTemporarily);
+            }
+        };
+        ScreenOnTracker tracker = ScreenOnTracker.INSTANCE.get(mActivity);
+        tracker.addListener(mAutoHideScreenListener);
+        mAutoHideController.setScreenOn(tracker.isScreenOn());
+        mAutoHideController.setEnabled(SettingsCache.INSTANCE.get(mActivity).getValue(AUTO_HIDE_URI));
+    }
+
+    private void runOnAutoHideThread(Runnable action) {
+        final Handler handler = mAutoHideHandler;
+        final int generation = mAutoHideGeneration;
+        if (mDestroyed || handler == null) return;
+        if (Looper.myLooper() == handler.getLooper()) {
+            action.run();
+        } else {
+            handler.post(() -> {
+                if (!mDestroyed && generation == mAutoHideGeneration) action.run();
+            });
+        }
+    }
+
+    private void cancelAutoHideAnimation() {
+        if (mAutoHideAnimator != null) {
+            mAutoHideAnimator.cancel();
+            mAutoHideAnimator = null;
+        }
+    }
+
+    /** Called by Quickstep's existing input monitor; does not consume or transform the event. */
+    public void onNavigationTouch(boolean started) {
+        final NavHandleAutoHideController controller = mAutoHideController;
+        if (controller == null) return;
+        runOnAutoHideThread(() -> {
+            if (started) {
+                controller.onTouchStarted();
+            } else {
+                controller.onTouchFinished();
+            }
+        });
     }
 
     public MultiValueAlpha getStashedHandleAlpha() {
@@ -395,6 +528,10 @@ public class StashedHandleViewController implements TaskbarControllers.LoggableT
     }
 
     public void updateStateForSysuiFlags(@SystemUiStateFlags long systemUiStateFlags) {
+        if (mAutoHideController != null && mAutoHideSysuiFlags != systemUiStateFlags) {
+            mAutoHideSysuiFlags = systemUiStateFlags;
+            mAutoHideController.showTemporarily();
+        }
         mTaskbarHidden = (systemUiStateFlags & SYSUI_STATE_NAV_BAR_HIDDEN) != 0;
         updateRegionSamplingWindowVisibility();
     }
@@ -462,7 +599,18 @@ public class StashedHandleViewController implements TaskbarControllers.LoggableT
 
     @Override
     public boolean canNavHandleBeLongPressed() {
-        return isStashedHandleVisible();
+        if (isStashedHandleVisible()) return true;
+        if (mAutoHideController == null || !mAutoHideController.isEnabled() || mTaskbarHidden
+                || mStashedHandleView.getLayoutParams().height == 0) {
+            return false;
+        }
+        // Auto-hide is visual only. Do not let it suppress the first long press after idle,
+        // including when the input consumer and taskbar View use different UI threads.
+        float otherAlpha = 1f;
+        for (int i = 0; i < ALPHA_INDEX_AUTO_HIDE; i++) {
+            otherAlpha *= mTaskbarStashedHandleAlpha.get(i).getValue();
+        }
+        return otherAlpha > 0.01f;
     }
 
     @Override

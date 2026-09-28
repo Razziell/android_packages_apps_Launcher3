@@ -833,6 +833,11 @@ public class TouchInteractionService extends Service {
     }
 
     private void disposeEventHandlers(String reason) {
+        // Disposing the monitor may drop the terminal touch event.
+        if (mTaskbarManager != null) {
+            TaskbarActivityContext taskbar = mTaskbarManager.getTaskbarForDisplay(DEFAULT_DISPLAY);
+            if (taskbar != null) taskbar.onNavigationHandleTouch(false);
+        }
         Log.d(TAG, "disposeEventHandlers: Reason: " + reason
                 + " instance=" + System.identityHashCode(this));
         if (mInputMonitorDisplayModel != null) {
@@ -1108,6 +1113,10 @@ public class TouchInteractionService extends Service {
         }
 
         final int action = event.getActionMasked();
+        // Finish even if the animation manager ignores the terminal event below.
+        if (tac != null && (action == ACTION_UP || action == ACTION_CANCEL)) {
+            tac.onNavigationHandleTouch(false);
+        }
         // Note this will create a new consumer every mouse click, as after ACTION_UP from the click
         // an ACTION_HOVER_ENTER will fire as well.
         boolean isHoverActionWithoutConsumer = isHoverActionWithoutConsumer(event);
@@ -1146,6 +1155,11 @@ public class TouchInteractionService extends Service {
 
             boolean isOneHandedModeActive = deviceState.isOneHandedModeActive();
             boolean isInSwipeUpTouchRegion = rotationTouchHelper.isInSwipeUpTouchRegion(event);
+            if (action == ACTION_DOWN && tac != null && deviceState.isGesturalNavMode()
+                    && isInSwipeUpTouchRegion && !isTrackpadMotionEvent(event)) {
+                // Restore the visual handle before selecting the long-press consumer.
+                tac.onNavigationHandleTouch(true);
+            }
             BubbleControllers bubbleControllers = tac != null ? tac.getBubbleControllers() : null;
             boolean isOnBubbles = bubbleControllers != null
                     && BubbleBarInputConsumer.isEventOnBubbles(tac, event);
@@ -1271,6 +1285,7 @@ public class TouchInteractionService extends Service {
                 && !mConsumer.getActiveConsumerInHierarchy().isConsumerDetachedFromGesture();
         if (cancelGesture) {
             event.setAction(ACTION_CANCEL);
+            if (tac != null) tac.onNavigationHandleTouch(false);
         }
 
         if (mGestureState.isTrackpadGesture() && (action == ACTION_POINTER_DOWN
@@ -1369,6 +1384,8 @@ public class TouchInteractionService extends Service {
     }
 
     private void reset(int displayId) {
+        TaskbarActivityContext taskbar = mTaskbarManager.getTaskbarForDisplay(displayId);
+        if (taskbar != null) taskbar.onNavigationHandleTouch(false);
         mConsumer = mUncheckedConsumer = InputConsumerUtils.getDefaultInputConsumer(
                 displayId,
                 mUserUnlocked,
