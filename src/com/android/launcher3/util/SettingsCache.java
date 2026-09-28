@@ -124,8 +124,9 @@ public class SettingsCache extends ContentObserver {
 
     @Override
     public void onChange(boolean selfChange, Uri uri) {
-        // We use default of 1, but if we're getting an onChange call, can assume a non-default
-        // value will exist
+        // Integer consumers may read from a listener below. Invalidate before notifying,
+        // rather than coercing their value to boolean or losing their per-call default.
+        mIntKeyCache.remove(uri);
         boolean newVal = updateValue(uri);
         List<OnChangeListener> listeners = mListenerMap.get(uri);
         if (listeners == null) {
