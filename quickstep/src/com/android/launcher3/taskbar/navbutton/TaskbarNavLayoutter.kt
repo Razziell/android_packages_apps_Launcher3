@@ -18,6 +18,7 @@ package com.android.launcher3.taskbar.navbutton
 
 import android.content.res.Resources
 import android.view.Gravity
+import android.view.View
 import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.FrameLayout
@@ -51,7 +52,8 @@ class TaskbarNavLayoutter(
     ) {
 
     override fun layoutButtons(context: TaskbarActivityContext, isA11yButtonPersistent: Boolean) {
-        val layoutMode = SettingsCache.INSTANCE.get(homeButton!!.context).getIntValue(NAV_BAR_LAYOUT_URI, 0)
+        val layoutMode = SettingsCache.INSTANCE.get(homeButton!!.context)
+            .getIntValue(NAV_BAR_LAYOUT_URI, 0).takeIf { it in 0..3 } ?: 0
 
         // Add spacing after the end of the last nav button
         var navMarginEnd =
@@ -71,9 +73,11 @@ class TaskbarNavLayoutter(
             navMarginEnd += resources.getDimensionPixelSize(R.dimen.taskbar_hotseat_nav_spacing) / 2
         }
 
+        // END is right in LTR and left in RTL. Keep layout names physical in both cases.
+        val isRtl = navButtonContainer.layoutDirection == View.LAYOUT_DIRECTION_RTL
         val endFactor = when (layoutMode) {
-            2 -> 0.4f  // left
-            3 -> 1.6f  // right
+            2 -> if (isRtl) 0.4f else 1.6f // left
+            3 -> if (isRtl) 1.6f else 0.4f // right
             else -> 1f // normal & compact
         }
         val navButtonParams =

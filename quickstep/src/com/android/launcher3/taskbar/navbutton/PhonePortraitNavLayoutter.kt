@@ -49,7 +49,8 @@ class PhonePortraitNavLayoutter(
     ) {
 
     override fun layoutButtons(context: TaskbarActivityContext, isA11yButtonPersistent: Boolean) {
-        val layoutMode = SettingsCache.INSTANCE.get(homeButton!!.context).getIntValue(NAV_BAR_LAYOUT_URI, 0)
+        val layoutMode = SettingsCache.INSTANCE.get(homeButton!!.context)
+            .getIntValue(NAV_BAR_LAYOUT_URI, 0).takeIf { it in 0..3 } ?: 0
         val totalWidth = context.deviceProfile.deviceProperties.widthPx
         val homeButtonWidth =
             resources.getDimensionPixelSize(R.dimen.taskbar_phone_home_button_size)
@@ -63,7 +64,7 @@ class PhonePortraitNavLayoutter(
         val sideButtonWidth = contextualButtonWidth * 2
         val navButtonContainerWidth = contentWidth - contextualButtonWidth * 2
 
-        val startFactor = when (layoutMode) {
+        val leftFactor = when (layoutMode) {
             2 -> 0.4f  // left
             3 -> 1.6f  // right
             else -> 1f // normal & compact
@@ -75,10 +76,12 @@ class PhonePortraitNavLayoutter(
                 ViewGroup.LayoutParams.MATCH_PARENT,
             )
         navContainerParams.apply {
+            // Layout names refer to physical sides; RTL only changes button order.
+            gravity = Gravity.TOP or Gravity.LEFT
             topMargin = 0
             bottomMargin = 0
-            marginEnd = marginBase.toInt()
-            marginStart = (startFactor * marginBase.toFloat()).toInt()
+            leftMargin = (leftFactor * marginBase).toInt()
+            rightMargin = totalWidth - width - leftMargin
         }
 
         // Ensure order of buttons is correct

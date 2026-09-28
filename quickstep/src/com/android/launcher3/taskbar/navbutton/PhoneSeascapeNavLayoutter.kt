@@ -44,6 +44,13 @@ class PhoneSeascapeNavLayoutter(
         space,
     ) {
 
+    /** Rotation 270 maps the portrait left edge to the top instead. */
+    override fun getTopMarginFactor(layoutMode: Int): Float = when (layoutMode) {
+        2 -> 0.4f // left
+        3 -> 1.6f // right
+        else -> 1f // normal & compact
+    }
+
     override fun repositionContextualButtons(buttonSize: Int) {
         endContextualContainer.removeAllViews()
         startContextualContainer.removeAllViews()

@@ -51,7 +51,8 @@ open class PhoneLandscapeNavLayoutter(
     override val orientation = LinearLayout.VERTICAL
 
     override fun layoutButtons(context: TaskbarActivityContext, isA11yButtonPersistent: Boolean) {
-        val layoutMode = SettingsCache.INSTANCE.get(homeButton!!.context).getIntValue(NAV_BAR_LAYOUT_URI, 0)
+        val layoutMode = SettingsCache.INSTANCE.get(homeButton!!.context)
+            .getIntValue(NAV_BAR_LAYOUT_URI, 0).takeIf { it in 0..3 } ?: 0
         val totalHeight = context.deviceProfile.deviceProperties.heightPx
         val homeButtonHeight =
             resources.getDimensionPixelSize(R.dimen.taskbar_phone_home_button_size)
@@ -65,17 +66,14 @@ open class PhoneLandscapeNavLayoutter(
         val sideButtonHeight = contextualButtonHeight * 2
         val navButtonContainerHeight = contentWidth - contextualButtonHeight * 2
 
-        val bottomFactor = when (layoutMode) {
-            2 -> 0.4f  // left
-            3 -> 1.6f  // right
-            else -> 1f // normal & compact
-        }
         val marginBase = contextualButtonHeight + contentPadding + roundedCornerContentMargin
         val navContainerParams =
             FrameLayout.LayoutParams(MATCH_PARENT, navButtonContainerHeight.toInt())
         navContainerParams.apply {
-            topMargin = marginBase.toInt()
-            bottomMargin = (bottomFactor * marginBase.toFloat()).toInt()
+            // A fixed-height TOP-aligned container is positioned by topMargin, not bottomMargin.
+            gravity = Gravity.TOP or Gravity.START
+            topMargin = (getTopMarginFactor(layoutMode) * marginBase).toInt()
+            bottomMargin = totalHeight - height - topMargin
             marginEnd = 0
             marginStart = 0
         }
@@ -115,6 +113,13 @@ open class PhoneLandscapeNavLayoutter(
         }
 
         repositionContextualButtons(contextualButtonHeight.toInt())
+    }
+
+    /** At rotation 90, the portrait left edge maps to the bottom of the navigation rail. */
+    protected open fun getTopMarginFactor(layoutMode: Int): Float = when (layoutMode) {
+        2 -> 1.6f // left
+        3 -> 0.4f // right
+        else -> 1f // normal & compact
     }
 
     /** Landscape flips the default order to account for rotation. */
