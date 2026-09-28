@@ -24,6 +24,7 @@ import static com.android.launcher3.logging.StatsLogManager.LauncherLatencyEvent
 
 import android.app.contextualsearch.ContextualSearchConfig;
 import android.content.Context;
+import android.provider.Settings;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.ViewConfiguration;
@@ -57,6 +58,7 @@ public class NavHandleLongPressHandler {
     protected final ContextualSearchInvoker mContextualSearchInvoker;
     protected final StatsLogManager mStatsLogManager;
     private boolean mPendingInvocation;
+    private final Context mContext;
     protected final TopTaskTracker mTopTaskTracker;
     private final ContextualSearchStateManager mContextualSearchStateManager;
 
@@ -68,6 +70,7 @@ public class NavHandleLongPressHandler {
             StatsLogManager.StatsLogManagerFactory logManagerFactory,
             ContextualSearchStateManager contextualSearchStateManager,
             ContextualSearchInvoker contextualSearchInvoker) {
+        mContext = context;
         mStatsLogManager = logManagerFactory.create(context);
         mVibratorWrapper = vibratorWrapper;
         mContextualSearchHapticManager = hapticManager;
@@ -81,8 +84,15 @@ public class NavHandleLongPressHandler {
         return LauncherComponentProvider.get(context).getNavHandleLongPressHandler();
     }
 
+    /** EVOX's switch controls only the navigation-handle entry point, not all search actions. */
+    public static boolean isNavbarLongPressEnabled(Context context) {
+        return Settings.System.getInt(context.getContentResolver(),
+                Settings.System.NAVBAR_LONG_PRESS_GESTURE, 1) == 1;
+    }
+
     protected boolean isContextualSearchEntrypointEnabled(NavHandle navHandle) {
-        return DeviceConfigWrapper.get().getEnableLongPressNavHandle();
+        return isNavbarLongPressEnabled(mContext)
+                && DeviceConfigWrapper.get().getEnableLongPressNavHandle();
     }
 
     /**
@@ -118,6 +128,12 @@ public class NavHandleLongPressHandler {
                 LAUNCHER_OMNI_GET_LONG_PRESS_RUNNABLE);
         long startTimeMillis = SystemClock.elapsedRealtime();
         return () -> {
+            // The setting can change between obtaining this callback and executing it.
+            if (!isContextualSearchEntrypointEnabled(navHandle)) {
+                mPendingInvocation = false;
+                mVibratorWrapper.cancelVibrate();
+                return;
+            }
             mStatsLogManager.latencyLogger().withInstanceId(instanceId).withLatency(
                     SystemClock.elapsedRealtime() - startTimeMillis).log(
                     LAUNCHER_LATENCY_OMNI_RUNNABLE);

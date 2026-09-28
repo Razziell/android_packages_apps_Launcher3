@@ -32,6 +32,7 @@ import com.android.quickstep.inputconsumers.BubbleBarInputConsumer
 import com.android.quickstep.inputconsumers.DeviceLockedInputConsumer
 import com.android.quickstep.inputconsumers.LauncherInputConsumer
 import com.android.quickstep.inputconsumers.LauncherWithoutFocusInputConsumer
+import com.android.quickstep.inputconsumers.NavHandleLongPressHandler
 import com.android.quickstep.inputconsumers.NavHandleLongPressInputConsumer
 import com.android.quickstep.inputconsumers.OneHandedModeInputConsumer
 import com.android.quickstep.inputconsumers.OtherActivityInputConsumer
@@ -278,6 +279,7 @@ object InputConsumerUtils {
                 canStartSystemGesture &&
                     !previousGestureState.isRecentsAnimationRunning &&
                     navHandle.canNavHandleBeLongPressed() &&
+                    NavHandleLongPressHandler.isNavbarLongPressEnabled(context) &&
                     !ignoreThreeFingerTrackpadForNavHandleLongPress(gestureState)
             ) {
                 reasonString.append(
