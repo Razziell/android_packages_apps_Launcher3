@@ -49,12 +49,12 @@
     <!-- Settings title to show Google Now at -1 screen on launcher. [CHAR LIMIT=50] -->
     <string name="title_show_google_app">Смахивание вправо - Google</string>
     <!-- Settings message explaining when the -1 screen is available on an LTR device. [CHAR LIMIT=100] -->
-    <string name="msg_minus_one_on_left">Когда открываете рабочий стол слева</string>
+    <string name="msg_minus_one_on_left">При смахивании вправо на главном экране</string>
     <!-- Settings message explaining when the -1 screen is available on an RTL device. [CHAR LIMIT=100] -->
-    <string name="msg_minus_one_on_right">Когда открываете рабочий стол справа</string>
+    <string name="msg_minus_one_on_right">При смахивании влево на главном экране</string>
     <!-- All apps icon customizations -->
     <string name="pref_icon_customization_title">Использовать настройки значков в меню приложений</string>
-    <string name="pref_icon_customization_summary">Следовать настройкам значков, главного экрана</string>
+    <string name="pref_icon_customization_summary">Использовать настройки значков рабочего стола</string>
     <!-- Pause apps shortcut -->
     <string name="pause">Пауза</string>
     <string name="pause_apps_dialog_title">Приостановить %1$s?</string>
@@ -79,11 +79,11 @@
     <!-- DT2S -->
     <string name="pref_sleep_gesture_title">Выкл. двойным касанием</string>
     <string name="pref_sleep_gesture_summary">Дважды коснитесь пустой области главного экрана, чтобы выключить его</string>
-    <string name="pref_sleep_gesture_haptic_title">Вибрировать при двойном нажатии для сна</string>
-    <string name="pref_sleep_gesture_haptic_summary">Вибрировать при выполнении жеста двойного нажатия для перехода в спящий режим</string>
+    <string name="pref_sleep_gesture_haptic_title">Вибрация при двойном касании</string>
+    <string name="pref_sleep_gesture_haptic_summary">Вибрация при выключении экрана двойным касанием</string>
     <!-- Open keyboard -->
     <string name="drawer_open_keyboard_title">Автоматическая клавиатура</string>
-    <string name="drawer_open_keyboard_summary">Показать клавиатуру, при открытии меню приложений</string>
+    <string name="drawer_open_keyboard_summary">Показывать клавиатуру при открытии меню приложений</string>
     <!-- Icon size -->
     <string name="icon_size_title">Размер значка</string>
     <!-- Font size -->
@@ -95,8 +95,10 @@
     <!-- Hotseat Background -->
     <string name="hotseat_bg_title">Фон нижней панели</string>
     <string name="hotseat_bg_summary">Полупрозрачный фон нижней панели приложений</string>
+    <string name="hotseat_opacity_light_title">Непрозрачность фона в светлой теме</string>
+    <string name="hotseat_opacity_dark_title">Непрозрачность фона в тёмной теме</string>
     <!-- Background opacity -->
-    <string name="background_opacity_title">Прозрачность фона</string>
+    <string name="background_opacity_title">Непрозрачность фона</string>
     <!-- Stroke -->
     <string name="stroke_width_title">Окантовка</string>
     <!-- Kill App recents action shortcut -->
@@ -147,17 +149,17 @@
     <string name="drawer_scrollbar_title">Полоса прокрутки</string>
     <string name="drawer_scrollbar_summary">Полоса прокрутки сбоку меню приложений</string>
     <!-- Dark Status Bar -->
-    <string name="perf_dark_status_bar_title">Тёмная строка состояния</string>
-    <string name="perf_dark_status_bar_summary">Использовать тёмную строку состояния на главном экране</string>
+    <string name="perf_dark_status_bar_title">Тёмные значки строки состояния</string>
+    <string name="perf_dark_status_bar_summary">Всегда использовать тёмные значки строки состояния на рабочем столе</string>
     <!-- QuickSpace -->
-    <string name="show_quickspace_title">Самое главное</string>
+    <string name="show_quickspace_title">«С первого взгляда»</string>
     <string name="show_quickspace_summary">Показывать в верхней части рабочего стола</string>
     <!-- QuickSpace: QuickEvent: Greetings -->
     <string name="quickspace_grt_morning">Доброго утра.</string>
     <string name="quickspace_grt_evening">Доброго вечера.</string>
     <string name="quickspace_grt_afternoon">Доброго дня.</string>
     <string name="quickspace_grt_night">Доброй ночи.</string>
-    <string name="quickspace_grt_general">Хороший день.</string>
+    <string name="quickspace_grt_general">Добрый день.</string>
     <string name="quickspace_ext_one">Вот и</string>
     <string name="quickspace_ext_two">Сегодня</string>
     <!-- QuickSpace: QuickEvent: Ambient Play -->
@@ -323,12 +325,12 @@
     </string-array>
     <string name="intent_no_app_clock_found">Невозможно найти календарь или часы</string>
     <!-- QuickSpace: QuickEvent: Weather -->
-    <string name="quickspace_weather_provider_title">Поставщик погоды</string>
+    <string name="quickspace_weather_provider_title">Источник погоды</string>
     <string name="quickspace_weather_provider_entry_auto">Авто</string>
-    <string name="quickspace_weather_provider_entry_seraphix">Умное пространство Google</string>
+    <string name="quickspace_weather_provider_entry_seraphix">Google Smartspace</string>
     <string name="quickspace_weather_provider_entry_omnijaws">OmniJaws</string>
     <string name="quick_event_ambient_weather_title">Обновление погоды</string>
-    <string name="quick_event_ambient_weather_summary">Показывать текущее обновление погоды</string>
+    <string name="quick_event_ambient_weather_summary">Показывать текущую погоду</string>
     <string name="quick_event_ambient_weather_enabled_info">Требуется, чтобы служба погоды была запущена</string>
     <string name="quick_event_weather_clouds">Пасмурно</string>
     <string name="quick_event_weather_rain">Дождь</string>
@@ -337,9 +339,9 @@
     <string name="quick_event_weather_snow">Снег</string>
     <string name="quick_event_weather_wind">Ветер</string>
     <string name="quick_event_weather_mist">Туман</string>
-    <string name="quick_event_weather_city_title">Текущее местоположение</string>
-    <string name="quick_event_weather_city_summary">Показывать текущее местоположение</string>
-    <string name="quick_event_weather_text_title">Текущее состояние</string>
+    <string name="quick_event_weather_city_title">Город</string>
+    <string name="quick_event_weather_city_summary">Показывать название города</string>
+    <string name="quick_event_weather_text_title">Описание погоды</string>
     <string name="quick_event_weather_text_summary">Показывать информацию о текущих погодных условиях</string>
     <!-- Auto-hide page indicator dots -->
     <string name="auto_hide_dots">Автоскрытие индикатора страницы</string>
@@ -361,7 +363,7 @@
     <string name="icon_pack_no_market">Нет доступного магазина приложений</string>
     <!-- Wallpaper carousel -->
     <string name="wallpaper_carousel_title">Карусель обоев</string>
-    <string name="wallpaper_carousel_summary">Быстрое переключение обоев из меню настроек</string>
+    <string name="wallpaper_carousel_summary">Быстрая смена обоев в меню долгого нажатия</string>
     <string name="wallpaper_carousel_lockscreen_title">Применять к экрану блокировки</string>
     <string name="wallpaper_carousel_lockscreen_summary">Устанавливать те же обои на экран блокировки</string>
     <!-- Additional shape options in customization picker -->
@@ -372,13 +374,13 @@
     <string name="tapered_rect_shape_title">Заострённый прямоугольник</string>
     <string name="teardrop_shape_title">Капля</string>
     <string name="rounded_rect_shape_title">Скруглённый прямоугольник</string>
-    <string name="cloudy_shape_title">Пасмурно</string>
+    <string name="cloudy_shape_title">Облако</string>
     <string name="cylindrical_shape_title">Цилиндр</string>
     <string name="flower_shape_title">Цветок</string>
     <string name="heart_shape_title">Сердце</string>
     <string name="hexagon_shape_title">Шестиугольник</string>
     <string name="rounded_hexagon_shape_title">Скруглённый шестиугольник</string>
-    <string name="ios_style_shape_title">iOS стиль</string>
+    <string name="ios_style_shape_title">Стиль iOS</string>
     <string name="leaf_shape_title">Лист</string>
     <string name="meow_shape_title">Мяу</string>
     <string name="samsung_style_shape_title">Стиль Samsung</string>
@@ -388,15 +390,15 @@
     <string name="all_apps_dark_text_summary">Использовать тёмный текст для названия приложений</string>
     <!-- App drawer styles -->
     <string name="drawer_style_title">Стиль меню приложений</string>
-    <string name="drawer_style_normal">Нормальный (нижний лист)</string>
-    <string name="drawer_style_legacy">Устаревший полноэкранный</string>
+    <string name="drawer_style_normal">Обычный (выдвижная панель)</string>
+    <string name="drawer_style_legacy">Классический полноэкранный</string>
     <string name="drawer_style_list">В виде списка</string>
     <string name="drawer_style_oneui">Стиль OneUI (страничный)</string>
     <!-- App drawer sorting -->
     <string name="app_drawer_sort_mode_title">Сортировка меню приложений</string>
     <string name="app_drawer_sort_alphabetical">Сортировать по алфавиту</string>
     <string name="app_drawer_sort_install_date">Сортировать по дате установки</string>
-    <string name="app_drawer_sort_usage">По частоте использования</string>
+    <string name="app_drawer_sort_usage">По времени использования</string>
     <!-- App drawer color -->
     <string name="pref_app_drawer_custom_color_title">Свой цвет фона</string>
     <string name="pref_app_drawer_custom_color_summary">Использовать свой цвет фона для меню приложений</string>
@@ -412,10 +414,13 @@
     <string name="color_picker_green">Зелёный</string>
     <string name="color_picker_blue">Синий</string>
     <string name="color_picker_hex">HEX</string>
+    <string name="color_picker_default">По умолчанию</string>
+    <string name="color_picker_surface">Поверхность</string>
+    <string name="color_picker_accent">Акцент</string>
     <!-- Pixel style search bar -->
     <string name="dock_search_pixel_style_title">Панель поиска Pixel</string>
     <string name="dock_search_pixel_style_summary">Обновлённая панель поиска с многослойным фоном</string>
-    <string name="qsb_outer_opacity_title">Прозрачность внешнего слоя</string>
+    <string name="qsb_outer_opacity_title">Непрозрачность внешнего слоя</string>
     <!-- Trust apps -->
     <string name="trust_apps_manager_name">Скрыть и защитить приложения</string>
     <string name="trust_apps_auth_manager">Разблокируйте, чтобы управлять скрытыми и защищёнными приложениями</string>
@@ -424,13 +429,13 @@
     <string name="trust_apps_no_lock_error">Пожалуйста, настройте блокировку экрана, чтобы ограничить доступ к приложениям</string>
     <string name="trust_apps_help">Помощь</string>
     <string name="trust_apps_info_hidden">Не показывать скрытые приложения и их виджеты в меню приложений</string>
-    <string name="trust_apps_info_protected">Для запуска защищённых приложений требуется авторизация</string>
+    <string name="trust_apps_info_protected">Для запуска защищённых приложений через crDroid Home требуется авторизация</string>
     <!-- Recents style -->
     <string name="recents_style_title">Стиль недавних приложений</string>
     <string name="recents_style_default">По умолчанию</string>
     <string name="recents_style_stock">Эффект масштабирования</string>
-    <string name="recents_style_staple">Ками стиль</string>
-    <string name="recents_style_ios">iOS стиль</string>
+    <string name="recents_style_staple">Стиль Kami</string>
+    <string name="recents_style_ios">Стиль iOS</string>
     <string name="recents_style_oxygen">Стиль OxygenOS</string>
     <!-- Lock -->
     <string name="action_lock">Блокировать/разблокировать</string>

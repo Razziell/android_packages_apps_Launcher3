@@ -98,12 +98,12 @@
     <string name="remove_drop_target_label" msgid="7812859488053230776">"Убрать"</string>
     <string name="uninstall_drop_target_label" msgid="4722034217958379417">"Удалить"</string>
     <string name="app_info_drop_target_label" msgid="692894985365717661">"О приложении"</string>
-    <string name="install_private_system_shortcut_label" msgid="1616889277073184841">"Частная установка"</string>
+    <string name="install_private_system_shortcut_label" msgid="1616889277073184841">"Установить в частное пространство"</string>
     <string name="uninstall_private_system_shortcut_label" msgid="8423460530441627982">"Удалить приложение"</string>
     <string name="install_drop_target_label" msgid="2539096853673231757">"Установить"</string>
     <string name="dismiss_prediction_label" msgid="3357562989568808658">"Не рекомендовать"</string>
     <string name="pin_prediction" msgid="4196423321649756498">"Закрепить рекомендацию"</string>
-    <string name="bubble" msgid="3072951361014076670">"Подсказка"</string>
+    <string name="bubble" msgid="3072951361014076670">"Во всплывающем окне"</string>
     <string name="widget_settings" msgid="5280157748464495511">"Настройки"</string>
     <string name="pin_to_taskbar" msgid="5914002252642242332">"Закрепить на панели"</string>
     <string name="unpin_from_taskbar" msgid="1025883383457627426">"Открепить от панели"</string>
@@ -218,15 +218,15 @@
     <string name="remote_action_failed" msgid="1383965239183576790">"Не удалось выполнить действие (<xliff:g id="WHAT">%1$s</xliff:g>)."</string>
     <string name="private_space_label" msgid="2359721649407947001">"Частное пространство"</string>
     <string name="private_space_secondary_label" msgid="9203933341714508907">"Нажмите, чтобы настроить или открыть"</string>
-    <string name="ps_container_title" msgid="4391796149519594205">"Частный профиль"</string>
-    <string name="ps_container_settings" msgid="6059734123353320479">"Настройки личного пространства"</string>
-    <string name="ps_container_unlock_button_content_description" msgid="9181551784092204234">"Личное, разблокировано."</string>
-    <string name="ps_container_lock_button_content_description" msgid="5961993384382649530">"Личное, заблокировано."</string>
+    <string name="ps_container_title" msgid="4391796149519594205">"Частное пространство"</string>
+    <string name="ps_container_settings" msgid="6059734123353320479">"Настройки частного пространства"</string>
+    <string name="ps_container_unlock_button_content_description" msgid="9181551784092204234">"Частное пространство, разблокировано."</string>
+    <string name="ps_container_lock_button_content_description" msgid="5961993384382649530">"Частное пространство, заблокировано."</string>
     <string name="ps_container_lock_title" msgid="2640257399982364682">"Блокировка"</string>
-    <string name="ps_container_transition" msgid="8667331812048014412">"Переход к личному пространству"</string>
+    <string name="ps_container_transition" msgid="8667331812048014412">"Переход к частному пространству"</string>
     <string name="ps_add_button_label" msgid="8127988716897128773">"Установить"</string>
     <string name="ps_app_label_override" msgid="6876160706011676804">"Добавить"</string>
-    <string name="ps_add_button_content_description" msgid="3254274107740952556">"Установить приложения в личном пространстве"</string>
+    <string name="ps_add_button_content_description" msgid="3254274107740952556">"Установить приложения в частном пространстве"</string>
     <string name="ps_app_content_description" msgid="1129133475892816226">"Добавляйте в частное пространство файлы и многое другое"</string>
     <string name="circle_shape_title" msgid="3582075061179674565">"Круг"</string>
     <string name="square_shape_title" msgid="3085320803149569308">"Квадрат"</string>

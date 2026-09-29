@@ -20,7 +20,7 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="recent_task_option_pin" msgid="7929860679018978258">"Закрепить"</string>
-    <string name="recent_task_option_freeform" msgid="48863056265284071">"Произвольная форма"</string>
+    <string name="recent_task_option_freeform" msgid="48863056265284071">"Свободное окно"</string>
     <string name="recent_task_option_desktop" msgid="8280879717125435668">"Мультиоконный режим"</string>
     <string name="recent_task_option_external_display" msgid="4533840664313389484">"Перенести на внешний дисплей"</string>
     <string name="recent_task_option_remove_task" msgid="803559928027541555">"Очистить"</string>
@@ -136,7 +136,7 @@
     <string name="taskbar_button_home" msgid="2151398979630664652">"Главный экран"</string>
     <string name="taskbar_button_a11y" msgid="5241161324875094465">"Специальные возможности"</string>
     <string name="taskbar_button_back" msgid="8558862226461164514">"Назад"</string>
-    <string name="taskbar_button_ime_switcher" msgid="1730244360907588541">"Переключат. IME"</string>
+    <string name="taskbar_button_ime_switcher" msgid="1730244360907588541">"Сменить клавиатуру"</string>
     <string name="taskbar_button_recents" msgid="7273376136216613134">"Недавние"</string>
     <string name="taskbar_button_notifications" msgid="7471740351507357318">"Уведомления"</string>
     <string name="taskbar_button_quick_settings" msgid="227662894293189391">"Быстрые настройки"</string>
@@ -159,7 +159,7 @@
     <string name="quick_switch_task_with_position_in_parent" msgid="4968670948331508951">"<xliff:g id="TASK_DESCRIPTION">%1$s</xliff:g>, элемент <xliff:g id="INDEX_IN_PARENT">%2$d</xliff:g> из <xliff:g id="TOTAL_TASKS">%3$d</xliff:g>"</string>
     <string name="quick_switch_scroll_arrow_left" msgid="6527033155534184309">"Прокрутить влево"</string>
     <string name="quick_switch_scroll_arrow_right" msgid="7319779291086916348">"Прокрутить вправо"</string>
-    <string name="bubble_bar_bubble_fallback_description" msgid="7811684548953452009">"Всплывающая подсказка"</string>
+    <string name="bubble_bar_bubble_fallback_description" msgid="7811684548953452009">"Всплывающее окно"</string>
     <string name="bubble_bar_overflow_description" msgid="8617628132733151708">"Дополнительное меню"</string>
     <string name="bubble_bar_bubble_description" msgid="1882466152448446446">"\"<xliff:g id="NOTIFICATION_TITLE">%1$s</xliff:g>\" из приложения \"<xliff:g id="APP_NAME">%2$s</xliff:g>\""</string>
     <string name="bubble_bar_description_multiple_bubbles" msgid="3922207715357143648">"<xliff:g id="BUBBLE_BAR_BUBBLE_DESCRIPTION">%1$s</xliff:g> и ещё <xliff:g id="BUBBLE_COUNT">%2$d</xliff:g>"</string>
