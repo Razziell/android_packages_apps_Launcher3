@@ -64,7 +64,9 @@ public class AppInfoComparator implements Comparator<AppInfo> {
                 List<UsageStats> stats = usm.queryUsageStats(UsageStatsManager.INTERVAL_BEST, starttime, endtime);
                 if (stats != null) {
                     for (UsageStats stat : stats) {
-                        mUsageStats.put(stat.getPackageName(), stat.getTotalTimeInForeground());
+                        // A query can return several time buckets for the same package.
+                        mUsageStats.merge(stat.getPackageName(),
+                                stat.getTotalTimeInForeground(), Long::sum);
                     }
                 }
             }

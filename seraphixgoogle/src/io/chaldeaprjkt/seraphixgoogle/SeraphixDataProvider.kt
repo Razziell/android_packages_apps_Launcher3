@@ -18,7 +18,6 @@ package io.chaldeaprjkt.seraphixgoogle
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
-import android.util.Log
 import io.chaldeaprjkt.seraphixgoogle.SeraphixCompanion.isPackageEnabled
 
 class SeraphixDataProvider(
@@ -27,10 +26,6 @@ class SeraphixDataProvider(
     hostWidgetId: Int = -1
 ) {
     private val widgetManager by lazy { AppWidgetManager.getInstance(context) }
-    private val providerInfo by lazy {
-        widgetManager.installedProviders
-            .firstOrNull { it.provider == smartspaceProviderComponent }
-    }
     private val widgetHost by lazy { EphemeralWidgetHostGoogle(context, hostId) }
     private lateinit var widgetHostView: EphemeralWidgetHostViewGoogle
     private val smartspaceProviderComponent = ComponentName(QSB_PACKAGE, SMARTSPACE_PROVIDER)
@@ -57,34 +52,62 @@ class SeraphixDataProvider(
         }
     }
 
-    fun bind(onBounded: DataProviderBinder? = null) {
-        if (isWidgetBound) return
-        if (!context.isPackageEnabled(QSB_PACKAGE)) return
-
-        val wInfo = widgetManager.getAppWidgetInfo(widgetId)
-        isWidgetBound = wInfo != null && providerInfo?.provider == wInfo.provider
-        if (!isWidgetBound) {
-            if (widgetId > -1) widgetHost.deleteHost()
-            widgetId = widgetHost.allocateAppWidgetId()
-            isWidgetBound = widgetManager.bindAppWidgetIdIfAllowed(widgetId, smartspaceProviderComponent)
+    /** Returns binding success, not whether the widget has already delivered weather data. */
+    fun bind(onBounded: DataProviderBinder? = null): Boolean {
+        if (!context.isPackageEnabled(QSB_PACKAGE)) {
+            unbind()
+            return false
+        }
+        // Do not cache absence: the Google app/provider can become available later.
+        val providerInfo = widgetManager.installedProviders
+                .firstOrNull { it.provider == smartspaceProviderComponent }
+        if (providerInfo == null) {
+            unbind()
+            return false
         }
 
-        if (isWidgetBound) {
-            onBounded?.onBound(widgetId)
-            resumeListening()
+        try {
+            val wInfo = if (widgetId > -1) widgetManager.getAppWidgetInfo(widgetId) else null
+            if (isWidgetBound && wInfo?.provider == smartspaceProviderComponent) {
+                resumeListening()
+                return true
+            }
+            if (wInfo?.provider != smartspaceProviderComponent) {
+                unbind()
+                widgetId = widgetHost.allocateAppWidgetId()
+                if (!widgetManager.bindAppWidgetIdIfAllowed(widgetId, smartspaceProviderComponent)) {
+                    unbind()
+                    return false
+                }
+            }
+
             widgetHostView = widgetHost.createView(context, widgetId, providerInfo)
                     as EphemeralWidgetHostViewGoogle
+            isWidgetBound = true
+            resumeListening()
+            onBounded?.onBound(widgetId)
+            return true
+        } catch (e: RuntimeException) {
+            unbind()
+            throw e
         }
     }
 
     fun unbind() {
-        if (!isWidgetBound) return
-        pauseListening()
-        widgetHost.deleteHost()
-        if (::widgetHostView.isInitialized) {
-            widgetHostView.setOnUpdateAppWidget(null)
+        // A denied/failed bind may still own an allocated ID. Release that ID too,
+        // without deleting other widgets belonging to the same host.
+        try {
+            pauseListening()
+            if (::widgetHostView.isInitialized) {
+                widgetHostView.setOnUpdateAppWidget(null)
+            }
+        } finally {
+            val id = widgetId
+            widgetId = -1
+            isWidgetBound = false
+            isListening = false
+            if (id > -1) widgetHost.deleteAppWidgetId(id)
         }
-        isWidgetBound = false
     }
 
     companion object {

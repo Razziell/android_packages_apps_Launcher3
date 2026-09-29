@@ -41,7 +41,6 @@ import com.android.launcher3.util.MediaSessionManagerHelper;
 import com.android.launcher3.util.PackageUserKey;
 
 import io.chaldeaprjkt.seraphixgoogle.SeraphixDataProvider;
-import io.chaldeaprjkt.seraphixgoogle.DataProviderListener;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -145,38 +144,19 @@ public class QuickspaceController implements OmniJawsClient.OmniJawsObserver,
 
     private void decideWeatherProvider() {
         String pref = LauncherPrefs.SHOW_QUICKSPACE_WEATHER_PROVIDER.get(mContext);
-        WeatherProvider target = WeatherProvider.SERAPHIX;
-        if ("seraphix".equals(pref)) {
-            target = WeatherProvider.SERAPHIX;
-        } else if ("auto".equals(pref)) {
-            // Try seraphix first; if bind fails, fall back to OmniJaws
-            if (tryBindSeraphix(true)) {
-                target = WeatherProvider.SERAPHIX;
-            } else {
-                target = WeatherProvider.OMNIJAWS;
-            }
-        } else if ("omnijaws".equals(pref)) {
-            target = WeatherProvider.OMNIJAWS;
-        }
-        switchProvider(target);
+        // Auto (and Google when unavailable) falls back after an actual binding attempt.
+        // Bind only in switchProvider, after the previous provider is torn down.
+        switchProvider("omnijaws".equals(pref)
+                ? WeatherProvider.OMNIJAWS : WeatherProvider.SERAPHIX);
     }
 
     private void switchProvider(WeatherProvider target) {
-        if (mProvider == target) {
-            // Ensure the chosen provider is actually set up
-            if (target == WeatherProvider.SERAPHIX) {
-                tryBindSeraphix(false);
-            } else {
-                addOmniJawsIfEnabled();
+        if (mProvider != target) {
+            if (mProvider == WeatherProvider.SERAPHIX) {
+                unbindSeraphix();
+            } else if (mProvider == WeatherProvider.OMNIJAWS) {
+                removeOmniIfRegistered();
             }
-            return;
-        }
-
-        // Tear down old
-        if (mProvider == WeatherProvider.SERAPHIX) {
-            unbindSeraphix();
-        } else if (mProvider == WeatherProvider.OMNIJAWS) {
-            removeOmniIfRegistered();
         }
 
         mProvider = target;
@@ -184,7 +164,8 @@ public class QuickspaceController implements OmniJawsClient.OmniJawsObserver,
         // Bring up new
         if (mProvider == WeatherProvider.SERAPHIX) {
             if (!tryBindSeraphix(false)) {
-                // fallback if bind fails at runtime
+                // Also handles re-binding the same provider after it became unavailable.
+                unbindSeraphix();
                 mProvider = WeatherProvider.OMNIJAWS;
                 addOmniJawsIfEnabled();
             }
@@ -210,12 +191,20 @@ public class QuickspaceController implements OmniJawsClient.OmniJawsObserver,
             if (mSeraphix == null) {
                 mSeraphix = new SeraphixDataProvider(mContext, 1022,
                     LauncherPrefs.SERAPHIX_HOLDER_ID.get(mContext));
-                mSeraphix.setOnDataUpdated(mSeraphixListener);
+                final SeraphixDataProvider source = mSeraphix;
+                mSeraphix.setOnDataUpdated(card -> {
+                    // Ignore queued updates from a provider that has already been removed.
+                    if (mSeraphix != source || mProvider != WeatherProvider.SERAPHIX) return;
+                    try {
+                        updateWeatherData(card.getText(), card.getImage());
+                    } catch (Exception e) {
+                        Log.e(TAG, "Seraphix update error", e);
+                    }
+                });
             }
-            mSeraphix.bind(id -> { 
+            return mSeraphix.bind(id -> {
                 LauncherPrefs.get(mContext).put(LauncherPrefs.SERAPHIX_HOLDER_ID, id);
             });
-            return true;
         } catch (Throwable t) {
             if (!silent) Log.w(TAG, "Seraphix bind failed, falling back", t);
             unbindSeraphix();
@@ -224,24 +213,18 @@ public class QuickspaceController implements OmniJawsClient.OmniJawsObserver,
     }
 
     private void unbindSeraphix() {
+        final SeraphixDataProvider source = mSeraphix;
+        mSeraphix = null;
         try {
-            if (mSeraphix != null) {
-                mSeraphix.setOnDataUpdated(null);
-                mSeraphix.unbind();
+            if (source != null) {
+                source.setOnDataUpdated(null);
+                source.unbind();
             }
         } catch (Throwable ignored) {}
-        mSeraphix = null;
         mSeraphixText = null;
         mSeraphixIcon = null;
+        mLastBmpHash = 0;
     }
-
-    private final DataProviderListener mSeraphixListener = card -> {
-        try {
-            updateWeatherData(card.getText(), card.getImage());
-        } catch (Exception e) {
-            Log.e(TAG, "Seraphix update error", e);
-        }
-    };
 
     private void updateWeatherData(String text, Bitmap image) {
         int hash = (image == null) ? 0 : image.getGenerationId();

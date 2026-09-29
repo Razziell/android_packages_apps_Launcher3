@@ -55,6 +55,7 @@ import com.android.launcher3.util.VibratorWrapper;
 
 import com.android.settingslib.collapsingtoolbar.CollapsingToolbarBaseActivity;
 import com.android.settingslib.widget.SettingsBasePreferenceFragment;
+import com.android.systemui.shared.system.BlurUtils;
 
 /**
  * Settings activity for Launcher.
@@ -184,7 +185,7 @@ public class SettingsHomescreen extends CollapsingToolbarBaseActivity
      * This fragment shows the launcher preferences.
      */
     public static class HomescreenSettingsFragment extends SettingsBasePreferenceFragment implements
-            SettingsCache.OnChangeListener {
+            SettingsCache.OnChangeListener, SharedPreferences.OnSharedPreferenceChangeListener {
 
         private boolean mRestartOnResume = false;
 
@@ -221,6 +222,7 @@ public class SettingsHomescreen extends CollapsingToolbarBaseActivity
             mShowGoogleBarPref = screen.findPreference(LauncherPrefs.DOCK_SEARCH.getSharedPrefKey());
 
             updateIsGoogleAppEnabled();
+            updateFeatureAvailability();
 
             if (!VibratorWrapper.INSTANCE.get(getContext()).hasVibrator()) {
                 PreferenceCategory generalCategory = (PreferenceCategory) findPreference(KEY_GENERAL_CATEGORY);
@@ -316,9 +318,43 @@ public class SettingsHomescreen extends CollapsingToolbarBaseActivity
             }
         }
 
+        private void updateFeatureAvailability() {
+            final Preference launchBlur = findPreference(
+                    LauncherPrefs.APP_LAUNCH_BLUR_ENABLED.getSharedPrefKey());
+            if (launchBlur != null) {
+                launchBlur.setVisible(Flags.appLaunchBlur() && BlurUtils.supportsBlursOnWindows());
+            }
+
+            // Google supplies a ready-made string. Auto can choose either provider;
+            // select OmniJaws explicitly to configure its structured weather fields.
+            final boolean customizeWeather = "omnijaws".equals(
+                    LauncherPrefs.SHOW_QUICKSPACE_WEATHER_PROVIDER.get(requireContext()));
+            final Preference weatherCity = findPreference(
+                    LauncherPrefs.SHOW_QUICKSPACE_WEATHER_CITY.getSharedPrefKey());
+            final Preference weatherText = findPreference(
+                    LauncherPrefs.SHOW_QUICKSPACE_WEATHER_TEXT.getSharedPrefKey());
+            if (weatherCity != null) weatherCity.setVisible(customizeWeather);
+            if (weatherText != null) weatherText.setVisible(customizeWeather);
+        }
+
+        @Override
+        public void onSharedPreferenceChanged(SharedPreferences preferences, String key) {
+            if (LauncherPrefs.SHOW_QUICKSPACE_WEATHER_PROVIDER.getSharedPrefKey().equals(key)) {
+                updateFeatureAvailability();
+            }
+        }
+
+        @Override
+        public void onPause() {
+            LauncherPrefs.getPrefs(requireContext()).unregisterOnSharedPreferenceChangeListener(this);
+            super.onPause();
+        }
+
         @Override
         public void onResume() {
             super.onResume();
+            LauncherPrefs.getPrefs(requireContext()).registerOnSharedPreferenceChangeListener(this);
+            updateFeatureAvailability();
 
             if (isAdded() && !mPreferenceHighlighted) {
                 PreferenceHighlighter highlighter = createHighlighter();
