@@ -18,6 +18,7 @@ package com.android.launcher3.graphics
 
 import android.content.Context
 import android.content.res.Resources
+import android.provider.Settings
 import com.android.launcher3.LauncherPrefChangeListener
 import com.android.launcher3.LauncherPrefs
 import com.android.launcher3.LauncherPrefs.Companion.backedUpItem
@@ -43,8 +44,10 @@ import com.android.launcher3.util.LooperExecutor
 import com.android.launcher3.util.MutableListenableRef
 import com.android.launcher3.util.SafeCloseable
 import com.android.launcher3.util.SimpleBroadcastReceiver
+import com.android.launcher3.util.SimpleBroadcastReceiver.Companion.actionsFilter
 import com.android.launcher3.util.SimpleBroadcastReceiver.Companion.packageFilter
 import java.util.concurrent.CopyOnWriteArrayList
+import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Named
 
@@ -89,11 +92,17 @@ constructor(
         get() = iconState.folderShape
 
     private val listeners = CopyOnWriteArrayList<ThemeChangeListener>()
+    private var lastSystemIconMask = resolveSystemIconMask()
 
     init {
-        val receiver = SimpleBroadcastReceiver(context, uiExecutor) { verifyIconState() }
+        val receiver = SimpleBroadcastReceiver(context, uiExecutor) { onAndroidOverlayChanged() }
         receiver.register(packageFilter("android", ACTION_OVERLAY_CHANGED))
         lifecycle.addCloseable(receiver)
+
+        val themeEngineReceiver =
+            SimpleBroadcastReceiver(context, uiExecutor) { verifyIconState() }
+        themeEngineReceiver.register(actionsFilter(ACTION_THEME_ENGINE_CHANGED))
+        lifecycle.addCloseable(themeEngineReceiver)
 
         val prefListener = LauncherPrefChangeListener {
             if (it == PREF_ICON_SHAPE.sharedPrefKey) verifyIconState()
@@ -105,6 +114,42 @@ constructor(
             iconState.closeController()
         }
     }
+
+    private fun onAndroidOverlayChanged() {
+        val currentSystemMask = resolveSystemIconMask()
+        if (currentSystemMask != lastSystemIconMask) {
+            lastSystemIconMask = currentSystemMask
+            if (prefs.get(PREF_ICON_SHAPE).isNotEmpty()) {
+                prefs.put(PREF_ICON_SHAPE, "")
+            }
+        }
+        verifyIconState()
+    }
+
+    private fun resolveSystemIconMask(): String =
+        if (CONFIG_ICON_MASK_RES_ID == Resources.ID_NULL) {
+            ""
+        } else {
+            context.resources.getString(CONFIG_ICON_MASK_RES_ID)
+        }
+
+    private fun resolveSystemIconPack(): String =
+        try {
+            val json =
+                Settings.Secure.getString(context.contentResolver, SETTINGS_THEME_ENGINE_DATA)
+            if (json.isNullOrBlank()) {
+                ""
+            } else {
+                val entry = JSONObject(json).optJSONObject("themes")?.optJSONObject("icon_pack")
+                if (entry?.optBoolean("enabled", false) == true) {
+                    entry.optString("packageName", "")
+                } else {
+                    ""
+                }
+            }
+        } catch (_: Exception) {
+            ""
+        }
 
     private fun verifyIconState() {
         val newState = parseIconState(iconState)
@@ -139,8 +184,7 @@ constructor(
         val iconMask =
             when {
                 shapeModel != null -> shapeModel.pathString
-                CONFIG_ICON_MASK_RES_ID == Resources.ID_NULL -> ""
-                else -> context.resources.getString(CONFIG_ICON_MASK_RES_ID)
+                else -> resolveSystemIconMask().also { lastSystemIconMask = it }
             }
 
         val iconShape =
@@ -161,10 +205,14 @@ constructor(
             }
 
         val themeKey = themePreference.value
-        val themeCode = themeKey?.toString() ?: "no-theme"
+        val baseThemeCode = themeKey?.toString() ?: "no-theme"
+        val systemIconPack = resolveSystemIconPack()
+        val themeCode =
+            if (systemIconPack.isEmpty()) baseThemeCode else "$baseThemeCode#$systemIconPack"
 
+        val oldBaseThemeCode = oldState?.themeCode?.substringBefore('#')
         val iconControllerFactory =
-            if (oldState?.themeCode == themeCode) {
+            if (oldBaseThemeCode == baseThemeCode) {
                 oldState.themeController
             } else {
                 oldState?.closeController()
@@ -218,6 +266,9 @@ constructor(
         @JvmField val DEFAULT_SHAPE_DELEGATE = pickBestShape(shapeStr = "")
 
         private const val ACTION_OVERLAY_CHANGED = "android.intent.action.OVERLAY_CHANGED"
+        private const val ACTION_THEME_ENGINE_CHANGED =
+            "android.intent.action.THEME_ENGINE_CHANGED"
+        private const val SETTINGS_THEME_ENGINE_DATA = "theme_engine_data"
         private val CONFIG_ICON_MASK_RES_ID: Int =
             Resources.getSystem().getIdentifier("config_icon_mask", "string", "android")
 

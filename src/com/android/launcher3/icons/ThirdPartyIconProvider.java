@@ -43,7 +43,11 @@ public class ThirdPartyIconProvider extends LauncherIconProvider {
                 info.getComponentName(), UserHandle.getUserHandleForUid(info.applicationInfo.uid));
 
         IconResolver.DefaultDrawableProvider fallback =
-                () -> super.getIcon(info, iconDpi);
+                () -> {
+                    Drawable override = mContext.getResources().getIconPackOverride(
+                            info.packageName, info.name, iconDpi);
+                    return override != null ? override : super.getIcon(info, iconDpi);
+                };
         Drawable icon = ThirdPartyIconUtils.getByKey(mContext, key, iconDpi, fallback);
 
         if (icon == null) {
