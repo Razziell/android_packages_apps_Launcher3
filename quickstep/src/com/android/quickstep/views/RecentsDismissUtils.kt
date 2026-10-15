@@ -322,17 +322,19 @@ constructor(
 
     /** Dismisses all */
     fun dismissAllTasks() {
-        val lockedPkgMgr = LockedTaskManager.getInstance(recentsView.context)
         val allDismissSprings =
             recentsView.mUtils.taskViews
                 .reversed()
                 .filter { taskView ->
-                    recentsView.isTaskViewVisible(taskView) &&
-                        !lockedPkgMgr.isPackageLocked(
-                            taskView.firstTask?.key?.packageName ?: return@filter false
-                        )
+                    recentsView.isTaskViewVisible(taskView) && !taskView.isLocked
                 }
                 .mapNotNull { createDismissedTaskViewSpringAnimation(it) }
+        val hasUnlockedTaskViews = recentsView.mUtils.taskViews.any { !it.isLocked }
+        if (allDismissSprings.isEmpty() && !hasUnlockedTaskViews) {
+            recentsView.onDismissAnimationEnds()
+            InteractionJankMonitorWrapper.cancel(Cuj.CUJ_LAUNCHER_OVERVIEW_CLEAR_ALL)
+            return
+        }
         SpringSet(SpringAnimation(FloatValueHolder()).setSpring(SpringForce(1f)))
             .playTogether(allDismissSprings)
             .addEndListener {
@@ -347,7 +349,7 @@ constructor(
                     finishRecentsAnimation(/* toHome */ true, /* shouldPip */ false) {
                         uiHelperExecutor.execute { activityManagerWrapper.removeAllRecentTasks() }
                         removeAllTaskViews()
-                        if (!mUtils.isInDesktopFirstMode()) {
+                        if (!mUtils.isInDesktopFirstMode() && !hasTaskViews()) {
                             startHome()
                         }
                         onDismissAnimationEnds()
@@ -1502,25 +1504,38 @@ constructor(
             minVelocity: Float = 0f,
         ): SpringSet {
             trackSpringSet(triggeredSpringSet)
-            var lastPosition = 0f
+            var lastPosition = Float.NaN
             var isTriggered = false
+            fun triggerWithVelocity(velocity: Float) {
+                isTriggered = true
+                val startVelocity =
+                    abs(velocity).coerceAtLeast(abs(minVelocity)) *
+                        (if (velocity == 0f) minVelocity.sign else velocity.sign)
+                triggeredSpringSet.driverSpring.setStartVelocity(startVelocity)
+                triggeredSpringSet.start()
+            }
             driverSpring.addUpdateListener { _, value, velocity ->
                 // We do not compare to the threshold directly, as the update listener
                 // does not necessarily hit every value. Do not check again once it has started
                 // settling, as a spring can bounce past the end value multiple times.
                 if (isTriggered) return@addUpdateListener
                 if (
-                    lastPosition < driverThreshold && value >= driverThreshold ||
-                        lastPosition > driverThreshold && value <= driverThreshold
+                    (!lastPosition.isNaN() &&
+                        (lastPosition < driverThreshold && value >= driverThreshold ||
+                            lastPosition > driverThreshold && value <= driverThreshold)) ||
+                        abs(value - driverThreshold) < driverSpring.minimumVisibleChange
                 ) {
-                    isTriggered = true
+                    triggerWithVelocity(velocity)
                 }
                 lastPosition = value
-                if (isTriggered) {
-                    val startVelocity =
-                        abs(velocity).coerceAtLeast(abs(minVelocity)) * velocity.sign
-                    triggeredSpringSet.driverSpring.setStartVelocity(startVelocity)
-                    triggeredSpringSet.start()
+            }
+            driverSpring.addEndListener { _, canceled, _, velocity ->
+                if (!isTriggered) {
+                    if (canceled) {
+                        triggeredSpringSet.cancel()
+                    } else {
+                        triggerWithVelocity(velocity)
+                    }
                 }
             }
             return this

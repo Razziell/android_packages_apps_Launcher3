@@ -133,7 +133,8 @@ public class OverviewActionsView<T extends OverlayUICallbacks> extends FrameLayo
     private static final int INDEX_SCROLL_ALPHA = 5;
     private static final int INDEX_GROUPED_ALPHA = 6;
     private static final int INDEX_3P_LAUNCHER = 7;
-    private static final int NUM_ALPHAS = 8;
+    private static final int INDEX_LOCK_PILL_ALPHA = 8;
+    private static final int NUM_ALPHAS = 9;
 
     public @interface SplitButtonHiddenFlags { }
     public static final int FLAG_SMALL_SCREEN_HIDE_SPLIT = 1 << 0;
@@ -271,18 +272,20 @@ public class OverviewActionsView<T extends OverlayUICallbacks> extends FrameLayo
         if (mLockPillContainer == null || mLockPillShowing) return;
         mLockPillShowing = true;
         mLockPillText.setText(isCurrentlyLocked ? R.string.unlock_app : R.string.lock_app);
+        mLockPillContainer.animate().cancel();
         mLockPillContainer.setAlpha(0f);
         mLockPillContainer.setVisibility(VISIBLE);
         mLockPillContainer.animate().alpha(1f).setDuration(150).start();
-        mActionButtons.animate().alpha(0f).setDuration(150).start();
+        mAlphaProperties[INDEX_LOCK_PILL_ALPHA].animateToValue(0f).setDuration(150).start();
     }
 
     public void hideLockPill() {
         if (mLockPillContainer == null || !mLockPillShowing) return;
         mLockPillShowing = false;
+        mLockPillContainer.animate().cancel();
         mLockPillContainer.animate().alpha(0f).setDuration(150).withEndAction(() ->
                 mLockPillContainer.setVisibility(GONE)).start();
-        mActionButtons.animate().alpha(1f).setDuration(150).start();
+        mAlphaProperties[INDEX_LOCK_PILL_ALPHA].animateToValue(1f).setDuration(150).start();
     }
 
     private void updateVisibilities() {

@@ -227,7 +227,7 @@ CONTAINER : RecentsViewContainer {
                 LockedTaskManager.getInstance(container).setPackageLocked(
                     packageName, !wasLockedBeforeDrag
                 )
-                taskBeingDragged.updateLockState(packageName)
+                recentsView.updateLockStateForPackage(packageName)
             }
         }
 

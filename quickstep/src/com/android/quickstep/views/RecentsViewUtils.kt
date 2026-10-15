@@ -205,6 +205,9 @@ class RecentsViewUtils(private val recentsView: RecentsView<*, *>) : DesktopVisi
      * returns true.
      */
     fun canRemoveTaskView(taskView: TaskView): Boolean {
+        if (taskView.isLocked) {
+            return false
+        }
         if (!areMultiDesksFlagsEnabled() || !isInDesktopFirstMode()) {
             return true
         }

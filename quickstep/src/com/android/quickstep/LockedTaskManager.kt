@@ -1,33 +1,60 @@
 package com.android.quickstep
 
 import android.content.Context
+import android.database.ContentObserver
+import android.os.Handler
+import android.os.Looper
 import android.os.UserHandle
 import android.provider.Settings
 
 class LockedTaskManager private constructor(context: Context) {
 
     private val contentResolver = context.applicationContext.contentResolver
+    private var cachedLockedPackages: Set<String>? = null
 
+    init {
+        contentResolver.registerContentObserver(
+            Settings.System.getUriFor(Settings.System.RECENTS_LOCKED_TASKS),
+            false,
+            object : ContentObserver(Handler(Looper.getMainLooper())) {
+                override fun onChange(selfChange: Boolean) {
+                    synchronized(this@LockedTaskManager) {
+                        cachedLockedPackages = null
+                    }
+                }
+            },
+        )
+    }
+
+    @Synchronized
     fun getLockedPackages(): Set<String> {
+        cachedLockedPackages?.let { return it }
         val locked = Settings.System.getStringForUser(
             contentResolver,
             Settings.System.RECENTS_LOCKED_TASKS,
             UserHandle.USER_CURRENT
-        ) ?: return emptySet()
-        return locked.split(",").filter { it.isNotBlank() }.toSet()
+        )
+        val parsed =
+            if (locked.isNullOrEmpty()) emptySet()
+            else locked.split(",").filter { it.isNotBlank() }.toSet()
+        cachedLockedPackages = parsed
+        return parsed
     }
 
     fun isPackageLocked(packageName: String): Boolean {
         return packageName in getLockedPackages()
     }
 
+    @Synchronized
     fun setPackageLocked(packageName: String, locked: Boolean) {
         val tasks = getLockedPackages().toMutableSet()
         if (locked) tasks.add(packageName) else tasks.remove(packageName)
+        val immutable = tasks.toSet()
+        cachedLockedPackages = immutable
         Settings.System.putStringForUser(
             contentResolver,
             Settings.System.RECENTS_LOCKED_TASKS,
-            tasks.joinToString(","),
+            immutable.joinToString(","),
             UserHandle.USER_CURRENT
         )
     }

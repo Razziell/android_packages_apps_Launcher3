@@ -615,7 +615,13 @@ public interface TaskShortcutFactory {
                 LockedTaskManager ltm = LockedTaskManager.getInstance(mContext);
                 boolean wasLocked = ltm.isPackageLocked(mPackageName);
                 ltm.setPackageLocked(mPackageName, !wasLocked);
-                ((TaskView) mOriginalView).updateLockState(mPackageName);
+                TaskView taskView = (TaskView) mOriginalView;
+                RecentsView<?, ?> recentsView = taskView.getRecentsView();
+                if (recentsView != null) {
+                    recentsView.updateLockStateForPackage(mPackageName);
+                } else {
+                    taskView.updateLockState(mPackageName);
+                }
                 Toast.makeText(mContext,
                         wasLocked ? R.string.unlock_app : R.string.lock_app,
                         Toast.LENGTH_SHORT).show();

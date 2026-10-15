@@ -1909,14 +1909,22 @@ constructor(
 
     fun updateLockState(packageName: String?) {
         lockedPackageName = packageName
-        val chip = findViewById<IconAppChipView>(R.id.icon)
-        if (packageName == null) {
-            isLocked = false
-            chip?.setLockState(false)
-            return
+        val ltm = LockedTaskManager.getInstance(context)
+        var anyLocked = false
+        for (container in taskContainers) {
+            val pkg = container.task.key.packageName
+            val containerLocked = pkg != null && ltm.isPackageLocked(pkg)
+            if (containerLocked) {
+                anyLocked = true
+            }
+            (container.iconView as? IconAppChipView)?.setLockState(containerLocked)
         }
-        isLocked = LockedTaskManager.getInstance(context).isPackageLocked(packageName)
-        chip?.setLockState(isLocked)
+        isLocked =
+            if (taskContainers.isEmpty()) {
+                packageName != null && ltm.isPackageLocked(packageName)
+            } else {
+                anyLocked
+            }
     }
 
     /**
@@ -1979,8 +1987,16 @@ constructor(
         settledProgressGesture = if (isVisible) 1f else 0f
     }
 
+    private var lastColorTintAmount = 0f
+    private var lastColorTint = 0
+
     /** Set a color tint on the snapshot and supporting views. */
     open fun setColorTint(amount: Float, tintColor: Int) {
+        if (lastColorTintAmount == amount && lastColorTint == tintColor) {
+            return
+        }
+        lastColorTintAmount = amount
+        lastColorTint = tintColor
         getTaskIcons().forEach { (icon, _) -> icon.setIconColorTint(tintColor, amount) }
         taskContainers.forEach {
             if (enableRefactorTaskThumbnail()) {

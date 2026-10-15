@@ -1263,6 +1263,8 @@ public abstract class RecentsView<
                     updateOverlapState();
                     resetTaskVisuals();
                     requestLayout();
+                } else if (LauncherPrefs.RECENTS_SCROLL_VIBRATE.getSharedPrefKey().equals(key)) {
+                    mScrollVibrateEnabled = LauncherPrefs.RECENTS_SCROLL_VIBRATE.get(getContext());
                 }
             };
 
@@ -1298,10 +1300,12 @@ public abstract class RecentsView<
     }
 
     private String mRecentsStyle = "default"; 
+    private boolean mScrollVibrateEnabled = true;
 
     public void updateOverlapState() {
         mRecentsStyle = LauncherPrefs.RECENTS_STYLE.get(getContext());
         mEnableOverlap = !mRecentsStyle.equals("default");
+        mScrollVibrateEnabled = LauncherPrefs.RECENTS_SCROLL_VIBRATE.get(getContext());
     }
 
     @Override
@@ -1949,7 +1953,7 @@ public abstract class RecentsView<
     }
 
     private void vibrateForScroll() {
-        if (!LauncherPrefs.RECENTS_SCROLL_VIBRATE.get(getContext())) return;
+        if (!mScrollVibrateEnabled) return;
         long now = SystemClock.uptimeMillis();
         if (now - mScrollLastHapticTimestamp > mScrollHapticMinGapMillis) {
             mScrollLastHapticTimestamp = now;
@@ -2274,8 +2278,22 @@ public abstract class RecentsView<
         return mModel.isLoadingTasksInBackground();
     }
 
+    public void updateLockStateForPackage(@Nullable String packageName) {
+        if (packageName == null) return;
+        for (TaskView taskView : getTaskViews()) {
+            for (TaskContainer container : taskView.getTaskContainers()) {
+                if (packageName.equals(container.getTask().key.getPackageName())) {
+                    taskView.updateLockState(
+                            taskView.getFirstTask() != null
+                                    ? taskView.getFirstTask().key.getPackageName()
+                                    : packageName);
+                    break;
+                }
+            }
+        }
+    }
+
     protected void removeAllTaskViews() {
-        LockedTaskManager lockedMgr = LockedTaskManager.getInstance(getContext());
         // This handles an edge case where applyLoadPlan happens during a gesture when the only
         // Task is one with excludeFromRecents, in which case we should not remove it.
         CollectionsKt
@@ -2288,6 +2306,12 @@ public abstract class RecentsView<
         if (!hasTaskViews()) {
             removeView(mAddDesktopButton);
             removeView(mClearAllButton);
+        } else {
+            updateTaskSize();
+            mUtils.updateChildTaskOrientations();
+            updateScrollSynchronously();
+            resetTaskVisuals();
+            updateCurrentTaskActionsVisibility();
         }
     }
 
@@ -4626,12 +4650,9 @@ public abstract class RecentsView<
             throw new IllegalStateException("Another pending animation is still running");
         }
         PendingAnimation anim = new PendingAnimation(duration);
-        LockedTaskManager lockedMgr = LockedTaskManager.getInstance(getContext());
 
         for (TaskView taskView : getTaskViews()) {
-            String pkg = taskView.getFirstTask() != null
-                    ? taskView.getFirstTask().key.getPackageName() : null;
-            if (pkg != null && lockedMgr.isPackageLocked(pkg)) {
+            if (taskView.isLocked()) {
                 continue;
             }
             addDismissedTaskAnimations(taskView, duration, anim);
@@ -4652,7 +4673,9 @@ public abstract class RecentsView<
                     UI_HELPER_EXECUTOR.getHandler().post(
                             ActivityManagerWrapper.getInstance()::removeAllRecentTasks);
                     removeAllTaskViews();
-                    startHome();
+                    if (!hasTaskViews()) {
+                        startHome();
+                    }
                     InteractionJankMonitorWrapper.end(Cuj.CUJ_LAUNCHER_OVERVIEW_CLEAR_ALL);
                 });
             }

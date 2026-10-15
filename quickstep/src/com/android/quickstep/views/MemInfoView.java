@@ -83,6 +83,9 @@ public class MemInfoView extends TextView implements Insettable {
     private Handler mHandler;
 
     private String mMemInfoText;
+    private String mLastDisplayedText;
+    private long mCachedZramSize = -1L;
+    private String mCachedZramResult;
 
     private ActivityManager.MemoryInfo memInfo;
     private Context mContext;
@@ -94,6 +97,7 @@ public class MemInfoView extends TextView implements Insettable {
 
         mContext = context;
         mAlpha = new MultiValueAlpha(this, 2);
+        mAlpha.get(ALPHA_STATE_CTRL).setValue(0f);
         mAlpha.setUpdateVisibility(true);
         mActivityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
         memInfo = new ActivityManager.MemoryInfo();
@@ -113,6 +117,7 @@ public class MemInfoView extends TextView implements Insettable {
         super.setVisibility(visibility);
 
         if (visibility == VISIBLE) {
+            mCachedZramSize = -1L;
             startMemoryMonitoring();
         } else {
             stopMemoryMonitoring();
@@ -177,8 +182,14 @@ public class MemInfoView extends TextView implements Insettable {
     }
 
     private long getZramSize() {
-        if (!LauncherPrefs.RECENTS_MEMINFO_ZRAM.get(getContext()))
+        if (!LauncherPrefs.RECENTS_MEMINFO_ZRAM.get(getContext())) {
+            mCachedZramSize = 0L;
+            mCachedZramResult = null;
             return 0;
+        }
+        if (mCachedZramSize >= 0L) {
+            return mCachedZramSize;
+        }
 
         long zramSize = 0;
 
@@ -205,6 +216,10 @@ public class MemInfoView extends TextView implements Insettable {
             }
         }
 
+        mCachedZramSize = zramSize;
+        mCachedZramResult = zramSize > 0
+                ? Formatter.formatShortFileSize(mContext, zramSize)
+                : null;
         return zramSize;
     }
 
@@ -251,14 +266,20 @@ public class MemInfoView extends TextView implements Insettable {
 
             String availResult = Formatter.formatShortFileSize(view.mContext, freeMemory);
             String text;
-            if (zramSize > 0) {
-                String zramResult = Formatter.formatShortFileSize(view.mContext, zramSize);
-                text = String.format(Locale.getDefault(), view.mMemInfoText, availResult, view.mTotalResult + " + " + zramResult);
+            if (zramSize > 0 && view.mCachedZramResult != null) {
+                text = String.format(Locale.getDefault(), view.mMemInfoText, availResult, view.mTotalResult + " + " + view.mCachedZramResult);
             } else {
                 text = String.format(Locale.getDefault(), view.mMemInfoText, availResult, view.mTotalResult);
             }
 
-            MAIN_EXECUTOR.getHandler().post(() -> view.setText(text));
+            if (!text.equals(view.mLastDisplayedText)) {
+                view.mLastDisplayedText = text;
+                MAIN_EXECUTOR.getHandler().post(() -> {
+                    if (view.mHandler != null) {
+                        view.setText(text);
+                    }
+                });
+            }
 
             if (view.mHandler != null) {
                 view.mHandler.removeCallbacks(this);

@@ -295,13 +295,13 @@ public class SettingsRecents extends CollapsingToolbarBaseActivity
             }
 
             DisplayController.Info info = DisplayController.INSTANCE.get(getContext()).getInfo();
-            if (key.equals(RECENTS_CATEGORY_ACTION) || key.equals(RECENTS_STYLE_PREF)
-                    || key.equals(RECENTS_SCROLL_VIBRATE_PREF)) {
+            if (key.equals(RECENTS_CATEGORY_ACTION) || key.equals(RECENTS_STYLE_PREF)) {
                 return !info.isTablet(info.realBounds);
             }
 
             if (key.equals(RECENTS_SCROLL_VIBRATE_PREF)) {
-                return VibratorWrapper.INSTANCE.get(getContext()).hasVibrator();
+                return !info.isTablet(info.realBounds)
+                        && VibratorWrapper.INSTANCE.get(getContext()).hasVibrator();
             }
 
             if (key.equals(LauncherPrefs.RECENTS_LENS.getSharedPrefKey())) {

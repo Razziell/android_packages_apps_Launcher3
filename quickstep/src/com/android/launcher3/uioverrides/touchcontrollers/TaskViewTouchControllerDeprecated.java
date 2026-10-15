@@ -198,8 +198,8 @@ public class TaskViewTouchControllerDeprecated<
                     int upDirection = mRecentsView.getPagedOrientationHandler()
                             .getUpDirection(mIsRtl);
 
-                    // The task can be dragged up to dismiss it.
-                    mAllowGoingUp = true;
+                    // The task can be dragged up to dismiss it unless it is locked or non-removable.
+                    mAllowGoingUp = mRecentsView.canRemoveTaskView(mTaskBeingDragged);
 
                     // The task can be dragged down to open it if:
                     // - It's the current page
@@ -211,7 +211,11 @@ public class TaskViewTouchControllerDeprecated<
                             && (!mRecentsView.showAsGrid() || mTaskBeingDragged.isLargeTile())
                             && mRecentsView.isTaskInExpectedScrollPosition(mTaskBeingDragged);
 
-                    directionsToDetectScroll = mAllowGoingDown ? DIRECTION_BOTH : upDirection;
+                    int downDirection = mRecentsView.getPagedOrientationHandler()
+                            .getDownDirection(mIsRtl);
+                    directionsToDetectScroll = (mAllowGoingUp && mAllowGoingDown)
+                            ? DIRECTION_BOTH
+                            : (mAllowGoingUp ? upDirection : (mAllowGoingDown ? downDirection : 0));
                 }
 
                 if (mTaskBeingDragged == null) {
@@ -405,7 +409,7 @@ public class TaskViewTouchControllerDeprecated<
                 LockedTaskManager ltm = LockedTaskManager.getInstance(mContainer);
                 boolean wasLocked = mTaskBeingDragged.isLocked();
                 ltm.setPackageLocked(packageName, !wasLocked);
-                mTaskBeingDragged.updateLockState(packageName);
+                mRecentsView.updateLockStateForPackage(packageName);
             }
             if (!mIsDismissHapticRunning) {
                 VibratorWrapper.INSTANCE.get(mContainer).vibrate(
