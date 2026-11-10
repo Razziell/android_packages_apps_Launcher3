@@ -57,6 +57,8 @@ CONTAINER : RecentsViewContainer {
     private val downDirection = recentsView.pagedOrientationHandler.getDownDirection(isRtl)
 
     private var taskBeingDragged: TaskView? = null
+    // TaskView lifted above its neighbours by a lock drag; the only one whose Z we may lower.
+    private var raisedTaskView: TaskView? = null
     private var maxLockDisplacement: Float = 0f
     private var verticalFactor: Int = 0
     private var canInterceptTouch = false
@@ -139,15 +141,12 @@ CONTAINER : RecentsViewContainer {
         if (!canInterceptTouch(ev)) {
             return false
         }
+        // Recents styles overlap TaskViews: take the one drawn on top, not the first in order.
         taskBeingDragged =
-            recentsView.taskViews
-                .firstOrNull {
-                    recentsView.isTaskViewVisible(it) && container.dragLayer.isEventOverView(it, ev)
-                }
-                ?.also {
-                    verticalFactor =
-                        recentsView.pagedOrientationHandler.getTaskDragDisplacementFactor(isRtl)
-                }
+            recentsView.getTopMostTaskViewUnderEvent(ev)?.also {
+                verticalFactor =
+                    recentsView.pagedOrientationHandler.getTaskDragDisplacementFactor(isRtl)
+            }
         if (!canTaskLockTaskView(taskBeingDragged)) {
             debugLog(TAG, "Not intercepting touch, task cannot be locked.")
             return false
@@ -169,7 +168,9 @@ CONTAINER : RecentsViewContainer {
             ) * LOCK_DISPLACEMENT_FRACTION
         ).toFloat() * verticalFactor
 
+        lowerRaisedTask()
         taskBeingDragged.translationZ = 0.1f
+        raisedTaskView = taskBeingDragged
 
         wasLockedBeforeDrag = taskBeingDragged.isLocked
         hasLockThresholdHapticRun = false
@@ -252,9 +253,22 @@ CONTAINER : RecentsViewContainer {
                 }
                 recentsView.redrawLiveTile()
             }
-            taskBeingDragged.translationZ = 0f
+            if (raisedTaskView === taskBeingDragged) {
+                lowerRaisedTask()
+            }
             taskBeingDragged.isBeingDismissed = false
         }
+    }
+
+    /**
+     * Drops the drag elevation and lets the recents style restore its own stacking order. Cards
+     * that were only touched keep the Z assigned by the style.
+     */
+    private fun lowerRaisedTask() {
+        val taskView = raisedTaskView ?: return
+        raisedTaskView = null
+        taskView.translationZ = 0f
+        recentsView.reapplyStyleTransforms()
     }
 
     private fun showLockPill(isCurrentlyLocked: Boolean) {
@@ -278,8 +292,8 @@ CONTAINER : RecentsViewContainer {
                 }
                 recentsView.redrawLiveTile()
             }
-            it.translationZ = 0f
         }
+        lowerRaisedTask()
         hideLockPill()
         taskBeingDragged = null
     }

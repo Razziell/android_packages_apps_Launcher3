@@ -177,9 +177,8 @@ CONTAINER : StatefulContainer<T> {
             return false
         }
         val taskBeingDragged =
-            recentsView.taskViews.firstOrNull {
-                recentsView.isTaskViewVisible(it) && container.dragLayer.isEventOverView(it, ev)
-            }
+            // Recents styles overlap TaskViews: take the one drawn on top, not the first in order.
+            recentsView.getTopMostTaskViewUnderEvent(ev)
                 // If event is not over a taskView, check if it would have been either over the
                 // currently dismissing task being dragged, or over where the next task will be.
                 ?: recentsView.taskViews.firstOrNull { taskView ->
@@ -353,7 +352,11 @@ CONTAINER : StatefulContainer<T> {
     private fun clearState() {
         detector.finishedScrolling()
         detector.setDetectableScrollConditions(0, false)
-        taskBeingDragged?.resetViewTransforms()
+        taskBeingDragged?.let {
+            it.resetViewTransforms()
+            // The reset also wipes the stack offset, scale and Z owned by the recents style.
+            recentsView.reapplyStyleTransforms()
+        }
         taskBeingDragged = null
         springAnimation = null
         taskDragDisplacementValue = null

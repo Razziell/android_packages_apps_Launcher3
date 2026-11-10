@@ -502,12 +502,9 @@ constructor(
         // Grid end translation to run after all reflow animations have completed.
         val gridEndSpringSet =
             if (reflowSplitFromDesktopTile) null else createGridEndTranslationSpringSet(gridEndData)
-        val tasksWithOffsetsToReflow =
-            if (recentsView.isOverlapEnabled && dismissedTaskView != null && !recentsView.showAsGrid()) {
-                getOverlapTasksToReflow(dismissedTaskView, dismissedTaskGap)
-            } else {
-                getTasksToReflow(dismissedTaskView, towardsStart)
-            }
+        // Chosen by child index for every recents style: stacked cards overlap on screen, so
+        // their position does not tell which side of the dismissed task they belong to.
+        val tasksWithOffsetsToReflow = getTasksToReflow(dismissedTaskView, towardsStart)
         if (tasksWithOffsetsToReflow.isEmpty()) {
             return Pair(gridEndSpringSet, emptyList())
         } else {
@@ -584,24 +581,9 @@ constructor(
             val dismissedTaskGap =
                 if (dismissedTaskView == null) {
                     0f
-                } else if (isOverlapEnabled && !showAsGrid()) {
-                    val dismissedPos =
-                        pagedOrientationHandler.getPrimaryValue(
-                            dismissedTaskView.x,
-                            dismissedTaskView.y,
-                        )
-                    val activeTaskView = currentPageTaskView
-                    val activePos =
-                        activeTaskView?.let { taskView ->
-                            pagedOrientationHandler.getPrimaryValue(taskView.x, taskView.y)
-                        } ?: dismissedPos
-                    val reflowFromLeft =
-                        dismissedTaskView === activeTaskView || dismissedPos <= activePos
-                    
-                    val physicalSlotWidth = pagedOrientationHandler.getPrimarySize(dismissedTaskView) + pageSpacing
-                    val sign = if (reflowFromLeft) 1f else -1f
-                    physicalSlotWidth.toFloat() * sign * (if (isRtl) -1f else 1f)
                 } else {
+                    // Recents styles share this direction and slot size: only the spring that
+                    // drives the reflow differs (see createTaskGridReflowSpringSet).
                     // If current page beyond last TaskView's index, use last TaskView to calculate
                     // offset.
                     val lastTaskViewIndex = indexOfChild(mUtils.getLastTaskView())
@@ -619,38 +601,6 @@ constructor(
             // Add sliding translation for splitting tasks with large tiles present.
             val slidingTranslation = getSlidingTranslation(isSplitSelection)
             return dismissedTaskGap + slidingTranslation
-        }
-    }
-
-    private fun getOverlapTasksToReflow(
-        dismissedTaskView: TaskView,
-        dismissedTaskGap: Float,
-    ): List<Pair<TaskView, Int>> {
-        with(recentsView) {
-            val dismissedPos =
-                pagedOrientationHandler.getPrimaryValue(
-                    dismissedTaskView.x,
-                    dismissedTaskView.y,
-                )
-            val activeTaskView = currentPageTaskView
-            val activePos =
-                activeTaskView?.let { taskView ->
-                    pagedOrientationHandler.getPrimaryValue(taskView.x, taskView.y)
-                } ?: dismissedPos
-            val reflowFromLeft =
-                dismissedTaskView === activeTaskView || dismissedPos <= activePos
-            val tasks =
-                mUtils.taskViews
-                    .filterNot { it === dismissedTaskView || (it === activeTaskView && dismissedTaskView !== activeTaskView) }
-                    .map { taskView ->
-                        taskView to pagedOrientationHandler.getPrimaryValue(taskView.x, taskView.y)
-                    }
-                    .filter { (_, pos) ->
-                        if (reflowFromLeft) pos < dismissedPos else pos > dismissedPos
-                    }
-                    .sortedBy { (_, pos) -> abs(dismissedPos - pos) }
-                    .map { (taskView, _) -> taskView }
-            return tasks.mapIndexed { index, taskView -> taskView to index + 1 }
         }
     }
 

@@ -1596,6 +1596,35 @@ public abstract class RecentsView<
         }
     }
 
+    /**
+     * Returns the top-most visible TaskView under the event: highest Z first, then latest draw
+     * order. Recents styles overlap TaskViews, so the first match in child order can be a card
+     * hidden underneath the one being touched.
+     */
+    @Nullable
+    public TaskView getTopMostTaskViewUnderEvent(MotionEvent ev) {
+        TaskView best = null;
+        float bestZ = Float.NEGATIVE_INFINITY;
+        int bestIndex = Integer.MIN_VALUE;
+        final float eps = 1e-4f;
+
+        for (TaskView taskView : getTaskViews()) {
+            if (!isTaskViewVisible(taskView)) continue;
+            if (!mContainer.getDragLayer().isEventOverView(taskView, ev)) continue;
+
+            final float z = taskView.getZ();
+            final int index = indexOfChild(taskView);
+            if (best == null
+                    || z > bestZ + eps
+                    || (Math.abs(z - bestZ) <= eps && index > bestIndex)) {
+                best = taskView;
+                bestZ = z;
+                bestIndex = index;
+            }
+        }
+        return best;
+    }
+
     public boolean isTaskViewFullyVisible(TaskView tv) {
         if (showAsGrid()) {
             int screenStart = getPagedOrientationHandler().getPrimaryScroll(this);
@@ -5280,6 +5309,16 @@ public abstract class RecentsView<
         return mEnableOverlap && mEnableDrawingLiveTile;
     }
 
+    /**
+     * Re-applies the transforms owned by the recents style (stack offset, scale, Z and tint)
+     * after a TaskView reset them, e.g. when a touch ends without a drag.
+     */
+    public void reapplyStyleTransforms() {
+        if (mEnableOverlap) {
+            updatePageOffsets();
+        }
+    }
+
     public boolean isStackRecentsStyleActive() {
         return mRecentsStyle.equals("staple")
                 || mRecentsStyle.equals("ios")
@@ -7228,7 +7267,17 @@ public abstract class RecentsView<
 
             int scaleArea = (cachedScaleArea > 0) ? cachedScaleArea : (childSize + mPageSpacing);
             int childPosition = mPageScrolls[i];
-            int scrollDelta = Math.abs(curScroll - childPosition);
+            // A dismiss reflow moves TaskViews without scrolling. Follow that translation so a
+            // card grows while it slides into the centre instead of popping on relayout.
+            float totalDismissTrans = 0f;
+            if (child instanceof TaskView) {
+                TaskView reflowingTaskView = (TaskView) child;
+                totalDismissTrans = reflowingTaskView.getPrimaryDismissTranslationProperty()
+                        .get(reflowingTaskView)
+                        + TaskView.GRID_END_TRANSLATION_X.get(reflowingTaskView);
+            }
+            int scrollDelta = Math.abs(
+                    Math.round(curScroll - childPosition - totalDismissTrans));
 
             float baseScale = mScrollScale;
             if (scrollDelta <= scaleArea) {
@@ -7249,10 +7298,7 @@ public abstract class RecentsView<
 
             if (applyOverlap && child instanceof TaskView) {
                 TaskView tv = (TaskView) child;
-                
-                float dismissTrans = tv.getPrimaryDismissTranslationProperty().get(tv);
-                float gridEndTrans = TaskView.GRID_END_TRANSLATION_X.get(tv);
-                float totalDismissTrans = dismissTrans + gridEndTrans;
+
                 float childCenter = verticalScroll
                         ? (child.getTop() + totalDismissTrans + (child.getHeight() / 2f))
                         : (child.getLeft() + totalDismissTrans + (child.getWidth() / 2f));
